@@ -559,15 +559,15 @@
     padding: 5px 7px;
     opacity: 0; pointer-events: none;
     transition: opacity 0.12s;
-    white-space: nowrap;
     max-width: calc(100% - 16px);
-    overflow-x: auto; overflow-y: hidden;
-    -webkit-overflow-scrolling: touch; scrollbar-width: thin;
+    flex-wrap: wrap; justify-content: center; row-gap: 4px;
   }
   .float-toolbar.show { opacity: 1; pointer-events: auto; }
-  /* Every control inside the toolbar keeps its full natural size — the
-     toolbar scrolls horizontally instead of squeezing items (like the
-     color swatch and opacity slider) down to invisible widths. */
+  /* Every control inside the toolbar keeps its full natural size — instead
+     of scrolling or squeezing items (like the color swatch and opacity
+     slider) down to invisible widths, the whole toolbar simply wraps onto
+     a second line when it doesn't fit in one. Always fully visible, no
+     scrolling required. */
   .float-toolbar > * { flex-shrink: 0; }
   .float-toolbar select.ft-font {
     font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
@@ -2832,21 +2832,31 @@ function smartText(text, x, y, key) {
   const onLight = lum > 140;
   const savedFill = ctx.fillStyle;
   const strength = outlineStrengthFactor(key);
+  // Bake the current globalAlpha directly into the outline/shadow rgba
+  // values, then draw those bits at globalAlpha 1. Some browsers apply
+  // globalAlpha inconsistently to shadowColor/shadowBlur, which was making
+  // the dark outline/glow around text (esp. the big background headline)
+  // stay visible even when the opacity slider was pulled way down — so the
+  // fade looked like it "wasn't working". Baking alpha in manually makes
+  // the whole glyph (fill + outline + shadow) fade together everywhere.
+  const a = ctx.globalAlpha;
   if (strength > 0.02) {
+    ctx.globalAlpha = 1;
     if (onLight) {
       ctx.lineJoin = 'round';
       ctx.miterLimit = 2;
       ctx.lineWidth = Math.max(0.5, fontSize * 0.075 * strength);
-      ctx.strokeStyle = `rgba(0,0,0,${Math.min(0.85, 0.55 * strength)})`;
-      ctx.shadowColor = `rgba(0,0,0,${Math.min(0.75, 0.45 * strength)})`;
+      ctx.strokeStyle = `rgba(0,0,0,${Math.min(0.85, 0.55 * strength) * a})`;
+      ctx.shadowColor = `rgba(0,0,0,${Math.min(0.75, 0.45 * strength) * a})`;
       ctx.shadowBlur = fontSize * 0.16 * strength;
       ctx.shadowOffsetY = fontSize * 0.03;
       ctx.strokeText(text, x, y);
     } else {
-      ctx.shadowColor = `rgba(0,0,0,${Math.min(0.9, 0.8 * strength)})`;
+      ctx.shadowColor = `rgba(0,0,0,${Math.min(0.9, 0.8 * strength) * a})`;
       ctx.shadowBlur = fontSize * 0.3 * strength;
       ctx.shadowOffsetY = fontSize * 0.05;
     }
+    ctx.globalAlpha = a;
   }
   ctx.fillStyle = savedFill;
   ctx.fillText(text, x, y);
