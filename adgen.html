@@ -287,12 +287,6 @@
   .toggle-field { padding: 14px 16px; background: var(--parchment); border: 1px solid var(--border); margin-bottom: 14px; }
   .toggle-field .field-row .field label { margin-bottom: 4px; }
 
-  /* Font/Size/Opacity/Color controls that now live in the floating toolbar
-     (see ELEMENT_META / buildFloatToolbar) instead of the sidebar — the
-     underlying inputs stay in the DOM so existing wiring keeps working,
-     they're just no longer shown here to avoid duplicating the toolbar. */
-  .moved-to-toolbar { display: none !important; }
-
   .size-row {
     display: flex; align-items: center; gap: 8px;
     margin-top: 8px;
@@ -1012,13 +1006,13 @@
       </div>
 
       <div style="font-size:10.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; line-height:1.6; padding:10px 12px; background:var(--parchment); border-left:2px solid var(--red); margin-bottom:14px;">
-        <strong style="color:var(--dark);">Tap any element on the canvas</strong> to open its floating toolbar — font, size, bold, italic, underline, color, gradient, and opacity all live there now. The panels below just hold each element's text content, position fine-tuning, and toggles.
+        <strong style="color:var(--dark);">Tap any element on the canvas</strong> to open a quick floating toolbar (font, bold/italic/underline, color, gradient, size, opacity). Everything is still also editable below, panel by panel.
       </div>
 
       <div class="field element-panel" id="panel-headline">
         <label class="toggle-label"><input type="checkbox" id="t-headline" checked><span>Big Background Text</span></label>
         <input type="text" id="f-bigtext" placeholder="e.g. SALE" value="SALE" maxlength="14">
-        <select id="f-headline-font" class="moved-to-toolbar" style="margin-top:8px;">
+        <select id="f-headline-font" style="margin-top:8px;">
           <option value="'Barlow Condensed', sans-serif" data-weight="900" selected>Barlow Condensed (Classic)</option>
           <option value="'Anton', sans-serif" data-weight="400">Anton</option>
           <option value="'Bebas Neue', sans-serif" data-weight="400">Bebas Neue</option>
@@ -1029,7 +1023,7 @@
           <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
           <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
         </select>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Size</label>
           <input type="range" id="sz-headline" min="40" max="300" value="100">
           <span class="size-val" id="szv-headline">100%</span>
@@ -1039,7 +1033,7 @@
           <input type="range" id="rot-headline" min="-45" max="45" value="0">
           <span class="size-val" id="rotv-headline">0°</span>
         </div>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Opacity</label>
           <input type="range" id="op-headline" min="10" max="100" value="100">
           <span class="size-val" id="opv-headline">100%</span>
@@ -1056,12 +1050,12 @@
         <div class="field element-panel" id="panel-discount">
           <label class="toggle-label"><input type="checkbox" id="t-discount" checked><span>Discount Badge</span></label>
           <input type="text" id="f-discount" placeholder="e.g. 40% OFF" value="40% OFF" maxlength="12">
-          <div class="size-row moved-to-toolbar">
+          <div class="size-row">
             <label>Size</label>
             <input type="range" id="sz-discount" min="40" max="300" value="100">
             <span class="size-val" id="szv-discount">100%</span>
           </div>
-          <div class="size-row moved-to-toolbar">
+          <div class="size-row">
             <label>Opacity</label>
             <input type="range" id="op-discount" min="10" max="100" value="100">
             <span class="size-val" id="opv-discount">100%</span>
@@ -1071,12 +1065,12 @@
         <div class="field element-panel" id="panel-cta">
           <label class="toggle-label"><input type="checkbox" id="t-cta" checked><span>CTA Button</span></label>
           <input type="text" id="f-cta" placeholder="e.g. Shop Now" value="Shop Now" maxlength="16">
-          <div class="size-row moved-to-toolbar">
+          <div class="size-row">
             <label>Size</label>
             <input type="range" id="sz-cta" min="40" max="300" value="100">
             <span class="size-val" id="szv-cta">100%</span>
           </div>
-          <div class="size-row moved-to-toolbar">
+          <div class="size-row">
             <label>Opacity</label>
             <input type="range" id="op-cta" min="10" max="100" value="100">
             <span class="size-val" id="opv-cta">100%</span>
@@ -1088,12 +1082,12 @@
       <div class="field element-panel" id="panel-brand">
         <label class="toggle-label"><input type="checkbox" id="t-brand" checked><span>Brand Name</span></label>
         <input type="text" id="f-brand" placeholder="e.g. Nike" value="Your Brand" maxlength="20">
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Size</label>
           <input type="range" id="sz-brand" min="40" max="300" value="100">
           <span class="size-val" id="szv-brand">100%</span>
         </div>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Opacity</label>
           <input type="range" id="op-brand" min="10" max="100" value="100">
           <span class="size-val" id="opv-brand">100%</span>
@@ -1113,7 +1107,7 @@
             <div class="field" style="margin-bottom:0;">
               <label>Product Name</label>
               <input type="text" id="f-product" placeholder="e.g. Joyride Run Flyknit" value="Product Name" maxlength="26">
-              <select id="f-product-font" class="moved-to-toolbar" style="margin-top:6px;">
+              <select id="f-product-font" style="margin-top:6px;">
                 <option value="'Inter', sans-serif" data-weight="700" selected>Inter</option>
                 <option value="'Barlow Condensed', sans-serif" data-weight="900">Barlow Condensed</option>
                 <option value="'Anton', sans-serif" data-weight="400">Anton</option>
@@ -1125,11 +1119,10 @@
                 <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
                 <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
               </select>
-              <div class="color-field moved-to-toolbar" style="margin-top:6px;">
+              <div class="color-field" style="margin-top:6px;">
                 <input type="color" id="f-product-color" value="#ffffff">
                 <input type="text" id="f-product-color-hex" value="#ffffff">
               </div>
-              <div style="font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Font &amp; color: tap the product name on the canvas above.</div>
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>Price</label>
@@ -1161,12 +1154,12 @@
             <input type="color" id="f-oldprice-color" value="#ffffff">
             <input type="text" id="f-oldprice-color-hex" value="#ffffff">
           </div>
-          <div class="size-row moved-to-toolbar">
+          <div class="size-row">
             <label>Overall</label>
             <input type="range" id="sz-info" min="40" max="300" value="100">
             <span class="size-val" id="szv-info">100%</span>
           </div>
-          <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">"Overall" size/opacity: tap the product name on the canvas above. Use the two sliders below to fine-tune each line's size independently without breaking them apart.</div>
+          <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Sizes and moves the whole product name / price block together — use the two sliders below to fine-tune each line's size independently without breaking them apart.</div>
           <div class="size-row">
             <label>Name</label>
             <input type="range" id="sz-productname" min="50" max="200" value="100">
@@ -1177,7 +1170,7 @@
             <input type="range" id="sz-pricesize" min="50" max="200" value="100">
             <span class="size-val" id="szv-pricesize">100%</span>
           </div>
-          <div class="size-row moved-to-toolbar">
+          <div class="size-row">
             <label>Opacity</label>
             <input type="range" id="op-info" min="10" max="100" value="100">
             <span class="size-val" id="opv-info">100%</span>
@@ -1211,12 +1204,12 @@
             <input type="text" id="f-rating-count" value="3,299 Customers" maxlength="22">
           </div>
         </div>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Size</label>
           <input type="range" id="sz-rating" min="40" max="300" value="100">
           <span class="size-val" id="szv-rating">100%</span>
         </div>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Opacity</label>
           <input type="range" id="op-rating" min="10" max="100" value="100">
           <span class="size-val" id="opv-rating">100%</span>
@@ -1227,12 +1220,12 @@
       <div class="field toggle-field element-panel" id="panel-coupon">
         <label class="toggle-label"><input type="checkbox" id="t-coupon"><span>Coupon Code</span></label>
         <input type="text" id="f-coupon" placeholder="e.g. SAVE40" value="SAVE40" maxlength="16" style="margin-top:8px;">
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Size</label>
           <input type="range" id="sz-coupon" min="40" max="300" value="100">
           <span class="size-val" id="szv-coupon">100%</span>
         </div>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Opacity</label>
           <input type="range" id="op-coupon" min="10" max="100" value="100">
           <span class="size-val" id="opv-coupon">100%</span>
@@ -1243,12 +1236,12 @@
       <div class="field toggle-field element-panel" id="panel-customtag">
         <label class="toggle-label"><input type="checkbox" id="t-customtag"><span>Custom Text Tile</span></label>
         <input type="text" id="f-customtag" placeholder="e.g. New Collection" value="New Collection" maxlength="24" style="margin-top:8px;">
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Size</label>
           <input type="range" id="sz-customtag" min="40" max="300" value="100">
           <span class="size-val" id="szv-customtag">100%</span>
         </div>
-        <div class="size-row moved-to-toolbar">
+        <div class="size-row">
           <label>Opacity</label>
           <input type="range" id="op-customtag" min="10" max="100" value="100">
           <span class="size-val" id="opv-customtag">100%</span>
