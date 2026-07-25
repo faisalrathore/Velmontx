@@ -1053,10 +1053,34 @@
             <div class="field" style="margin-bottom:0;">
               <label>Product Name</label>
               <input type="text" id="f-product" placeholder="e.g. Joyride Run Flyknit" value="Product Name" maxlength="26">
+              <select id="f-product-font" style="margin-top:6px;">
+                <option value="'Inter', sans-serif" data-weight="700" selected>Inter</option>
+                <option value="'Barlow Condensed', sans-serif" data-weight="900">Barlow Condensed</option>
+                <option value="'Anton', sans-serif" data-weight="400">Anton</option>
+                <option value="'Bebas Neue', sans-serif" data-weight="400">Bebas Neue</option>
+                <option value="'Oswald', sans-serif" data-weight="700">Oswald</option>
+                <option value="'Montserrat', sans-serif" data-weight="800">Montserrat</option>
+                <option value="'Poppins', sans-serif" data-weight="700">Poppins</option>
+                <option value="'Playfair Display', serif" data-weight="800">Playfair Display</option>
+                <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
+                <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
+              </select>
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>Price</label>
               <input type="text" id="f-price" placeholder="e.g. $49.00" value="$49.00" maxlength="12">
+              <select id="f-price-font" style="margin-top:6px;">
+                <option value="'Barlow Condensed', sans-serif" data-weight="900" selected>Barlow Condensed</option>
+                <option value="'Inter', sans-serif" data-weight="900">Inter</option>
+                <option value="'Anton', sans-serif" data-weight="400">Anton</option>
+                <option value="'Bebas Neue', sans-serif" data-weight="400">Bebas Neue</option>
+                <option value="'Oswald', sans-serif" data-weight="700">Oswald</option>
+                <option value="'Montserrat', sans-serif" data-weight="800">Montserrat</option>
+                <option value="'Poppins', sans-serif" data-weight="700">Poppins</option>
+                <option value="'Playfair Display', serif" data-weight="800">Playfair Display</option>
+                <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
+                <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
+              </select>
             </div>
           </div>
         </div>
@@ -1065,11 +1089,21 @@
           <label class="toggle-label"><input type="checkbox" id="t-oldprice" checked><span>Original Price (shown struck-through)</span></label>
           <input type="text" id="f-oldprice" placeholder="e.g. $79.00" value="$79.00" maxlength="12">
           <div class="size-row">
-            <label>Size</label>
+            <label>Overall Size</label>
             <input type="range" id="sz-info" min="40" max="300" value="100">
             <span class="size-val" id="szv-info">100%</span>
           </div>
-          <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Sizes the whole product name / price block together</div>
+          <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Sizes and moves the whole product name / price block together — use the two sliders below to fine-tune each line's size independently without breaking them apart.</div>
+          <div class="size-row">
+            <label>Product Name Size</label>
+            <input type="range" id="sz-productname" min="50" max="200" value="100">
+            <span class="size-val" id="szv-productname">100%</span>
+          </div>
+          <div class="size-row">
+            <label>Price Size</label>
+            <input type="range" id="sz-pricesize" min="50" max="200" value="100">
+            <span class="size-val" id="szv-pricesize">100%</span>
+          </div>
           <div class="size-row">
             <label>Opacity</label>
             <input type="range" id="op-info" min="10" max="100" value="100">
@@ -1762,7 +1796,8 @@ document.getElementById('resetColorsBtn').addEventListener('click', () => {
 // ── LIVE FIELDS ──
 [
   'f-bigtext','f-discount','f-cta','f-brand','f-product','f-price','f-oldprice',
-  'f-rating-stars','f-rating-count','f-coupon','f-customtag','f-headline-font'
+  'f-rating-stars','f-rating-count','f-coupon','f-customtag','f-headline-font',
+  'f-product-font','f-price-font'
 ].forEach(id => {
   document.getElementById(id).addEventListener('input', render);
   document.getElementById(id).addEventListener('change', render);
@@ -1774,6 +1809,14 @@ document.getElementById('resetColorsBtn').addEventListener('click', () => {
   document.getElementById(id).addEventListener('change', render);
 });
 document.getElementById('f-shapebackdrop-type').addEventListener('change', render);
+document.getElementById('sz-productname').addEventListener('input', () => {
+  document.getElementById('szv-productname').textContent = document.getElementById('sz-productname').value + '%';
+  render();
+});
+document.getElementById('sz-pricesize').addEventListener('input', () => {
+  document.getElementById('szv-pricesize').textContent = document.getElementById('sz-pricesize').value + '%';
+  render();
+});
 document.getElementById('sz-shapebackdrop-opacity').addEventListener('input', () => {
   document.getElementById('szv-shapebackdrop-opacity').textContent = document.getElementById('sz-shapebackdrop-opacity').value + '%';
   render();
@@ -2685,17 +2728,31 @@ function render() {
     const infoOpacity = opacityOf('info');
     const infoX = layout.info.x * W;
     const infoY = layout.info.y * H;
+    // "Overall Size" (drag-to-resize / sz-info) scales and moves the whole
+    // block together, exactly as before. Product Name Size and Price Size
+    // are independent multipliers on top of that shared scale — so the two
+    // lines stay grouped and positioned as one unit, but each can be made
+    // bigger or smaller than the other. Same for their font choices.
     const infoScale = sc('info');
-    const productSize = W*0.028 * infoScale;
+    const productMult = (parseInt(document.getElementById('sz-productname').value, 10) || 100) / 100;
+    const priceMult = (parseInt(document.getElementById('sz-pricesize').value, 10) || 100) / 100;
+    const productFontSelect = document.getElementById('f-product-font');
+    const productFamily = productFontSelect.value;
+    const productWeight = parseInt(productFontSelect.selectedOptions[0].dataset.weight, 10) || 700;
+    const priceFontSelect = document.getElementById('f-price-font');
+    const priceFamily = priceFontSelect.value;
+    const priceWeight = parseInt(priceFontSelect.selectedOptions[0].dataset.weight, 10) || 900;
+
+    const productSize = W*0.028 * infoScale * productMult;
     ctx.fillStyle = textColor;
     ctx.globalAlpha = infoOpacity;
-    ctx.font = `700 ${productSize}px 'Inter', sans-serif`;
+    ctx.font = `${productWeight} ${productSize}px ${productFamily}`;
     smartText(product, infoX, infoY, 'info');
     const productW = ctx.measureText(product).width;
 
     const priceY = infoY + barH * 0.38 * infoScale;
-    const priceSize = W*0.042 * infoScale;
-    ctx.font = `900 ${priceSize}px 'Barlow Condensed', sans-serif`;
+    const priceSize = W*0.042 * infoScale * priceMult;
+    ctx.font = `${priceWeight} ${priceSize}px ${priceFamily}`;
     ctx.fillStyle = accent;
     ctx.globalAlpha = infoOpacity;
     smartText(price, infoX, priceY, 'info');
