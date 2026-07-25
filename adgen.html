@@ -561,8 +561,14 @@
     transition: opacity 0.12s;
     white-space: nowrap;
     max-width: calc(100% - 16px);
+    overflow-x: auto; overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; scrollbar-width: thin;
   }
   .float-toolbar.show { opacity: 1; pointer-events: auto; }
+  /* Every control inside the toolbar keeps its full natural size — the
+     toolbar scrolls horizontally instead of squeezing items (like the
+     color swatch and opacity slider) down to invisible widths. */
+  .float-toolbar > * { flex-shrink: 0; }
   .float-toolbar select.ft-font {
     font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
     color: #1a1410; border: none; background: #f3efe8; border-radius: 999px;
