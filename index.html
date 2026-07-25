@@ -1399,6 +1399,46 @@
   }
   .modal-cta:hover { background: #aa0000; }
 
+  /* ── STORY MODAL: LANDSCAPE LAYOUT ON DESKTOP ── */
+  @media (min-width: 900px) {
+    .story-modal {
+      max-width: 900px;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+    }
+    .modal-screenshot {
+      width: 44%;
+      flex-shrink: 0;
+      aspect-ratio: unset;
+      height: auto;
+      align-self: stretch;
+    }
+    .modal-close {
+      top: 16px; right: 16px;
+      width: 34px; height: 34px; font-size: 20px;
+    }
+    .modal-body {
+      width: 56%;
+      padding: 36px 44px 44px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .modal-industry { font-size: 12px; margin-bottom: 4px; }
+    .modal-period { font-size: 9px; margin-bottom: 24px; }
+    .modal-block { margin-bottom: 22px; padding-bottom: 22px; }
+    .modal-block-label { font-size: 9px; margin-bottom: 14px; }
+    .modal-stats { gap: 10px; }
+    .modal-stat { padding: 14px 16px; }
+    .modal-stat-val { font-size: 28px; }
+    .modal-stat-label { font-size: 8px; }
+    .modal-strategy { font-size: 14px; line-height: 1.9; }
+    .modal-cta { margin-top: 24px; padding: 15px; font-size: 12px; }
+  }
+
   /* ── INDUSTRY INDEX BAR ── */
   .industry-index {
     display: grid;
