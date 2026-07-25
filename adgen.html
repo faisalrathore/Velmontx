@@ -548,8 +548,11 @@
      each control just mirrors the matching sidebar field so both stay in
      sync no matter which one is used. Never exported to the PNG. */
   .float-toolbar {
+    /* Left/top are computed and clamped in JS (positionFloatToolbar) so the
+       toolbar always stays fully inside the visible canvas area — no CSS
+       transform-based centering here, since that can't be clamped and was
+       what let the toolbar overflow off the edge near corner elements. */
     position: absolute; top: 0; left: 0; z-index: 20;
-    transform: translate(-50%, calc(-100% - 12px));
     display: flex; align-items: center; gap: 4px;
     background: #fff; border-radius: 999px;
     box-shadow: 0 10px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06);
@@ -557,13 +560,9 @@
     opacity: 0; pointer-events: none;
     transition: opacity 0.12s;
     white-space: nowrap;
+    max-width: calc(100% - 16px);
   }
   .float-toolbar.show { opacity: 1; pointer-events: auto; }
-  .float-toolbar::after {
-    content: ''; position: absolute; top: 100%; left: 50%;
-    transform: translateX(-50%);
-    border: 6px solid transparent; border-top-color: #fff;
-  }
   .float-toolbar select.ft-font {
     font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
     color: #1a1410; border: none; background: #f3efe8; border-radius: 999px;
@@ -2228,9 +2227,33 @@ function positionFloatToolbar(key) {
   const h = document.querySelector('.handle[data-key="' + key + '"]');
   if (!h) return;
   const parentRect = editLayer.getBoundingClientRect();
+  const stageRect = canvasStage.getBoundingClientRect();
   const hRect = h.getBoundingClientRect();
-  floatToolbar.style.left = (hRect.left - parentRect.left + hRect.width / 2) + 'px';
-  floatToolbar.style.top = (hRect.top - parentRect.top) + 'px';
+  const margin = 8;
+
+  // Measure the toolbar's actual rendered size (its content was already
+  // built by buildFloatToolbar before this runs) so the clamp math below
+  // is based on real dimensions, not a guess.
+  const tbRect = floatToolbar.getBoundingClientRect();
+  const tbW = tbRect.width || floatToolbar.offsetWidth;
+  const tbH = tbRect.height || floatToolbar.offsetHeight;
+
+  // Preferred spot: centered above the element, 12px gap.
+  let left = hRect.left + hRect.width / 2 - tbW / 2;
+  let top = hRect.top - tbH - 12;
+
+  // Clamp horizontally so it never runs past the visible canvas edges —
+  // this is what was getting cut off for elements near the left/right side.
+  left = Math.max(stageRect.left + margin, Math.min(left, stageRect.right - tbW - margin));
+
+  // If there's no room above (element near the top), flip to below it instead.
+  if (top < stageRect.top + margin) {
+    top = hRect.bottom + 12;
+  }
+  top = Math.max(stageRect.top + margin, Math.min(top, stageRect.bottom - tbH - margin));
+
+  floatToolbar.style.left = (left - parentRect.left) + 'px';
+  floatToolbar.style.top = (top - parentRect.top) + 'px';
 }
 
 function selectElement(key) {
