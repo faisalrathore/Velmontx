@@ -1066,6 +1066,10 @@
                 <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
                 <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
               </select>
+              <div class="color-field" style="margin-top:6px;">
+                <input type="color" id="f-product-color" value="#ffffff">
+                <input type="text" id="f-product-color-hex" value="#ffffff">
+              </div>
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>Price</label>
@@ -1082,6 +1086,10 @@
                 <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
                 <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
               </select>
+              <div class="color-field" style="margin-top:6px;">
+                <input type="color" id="f-price-color" value="#e0342a">
+                <input type="text" id="f-price-color-hex" value="#e0342a">
+              </div>
             </div>
           </div>
         </div>
@@ -1089,6 +1097,10 @@
         <div class="field" style="margin-bottom:0;">
           <label class="toggle-label"><input type="checkbox" id="t-oldprice" checked><span>Original Price (shown struck-through)</span></label>
           <input type="text" id="f-oldprice" placeholder="e.g. $79.00" value="$79.00" maxlength="12">
+          <div class="color-field" style="margin-top:6px;">
+            <input type="color" id="f-oldprice-color" value="#ffffff">
+            <input type="text" id="f-oldprice-color-hex" value="#ffffff">
+          </div>
           <div class="size-row">
             <label>Overall</label>
             <input type="range" id="sz-info" min="40" max="300" value="100">
@@ -1735,6 +1747,9 @@ syncColor('f-text','f-text-hex');
 syncColor('f-overlay1','f-overlay1-hex');
 syncColor('f-overlay2','f-overlay2-hex');
 syncColor('f-shapebackdrop-color','f-shapebackdrop-color-hex');
+syncColor('f-product-color','f-product-color-hex');
+syncColor('f-price-color','f-price-color-hex');
+syncColor('f-oldprice-color','f-oldprice-color-hex');
 
 // ── BACKGROUND GRADIENT: two simple circles, one per stop. Each has its
 // own eyedropper so colors can be picked straight off the uploaded photo
@@ -2744,8 +2759,12 @@ function render() {
     const priceFamily = priceFontSelect.value;
     const priceWeight = parseInt(priceFontSelect.selectedOptions[0].dataset.weight, 10) || 900;
 
+    const productColor = val('f-product-color');
+    const priceColor = val('f-price-color');
+    const oldPriceColor = val('f-oldprice-color');
+
     const productSize = W*0.028 * infoScale * productMult;
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = productColor;
     ctx.globalAlpha = infoOpacity;
     ctx.font = `${productWeight} ${productSize}px ${productFamily}`;
     smartText(product, infoX, infoY, 'info');
@@ -2754,7 +2773,7 @@ function render() {
     const priceY = infoY + barH * 0.38 * infoScale;
     const priceSize = W*0.042 * infoScale * priceMult;
     ctx.font = `${priceWeight} ${priceSize}px ${priceFamily}`;
-    ctx.fillStyle = accent;
+    ctx.fillStyle = priceColor;
     ctx.globalAlpha = infoOpacity;
     smartText(price, infoX, priceY, 'info');
     const priceW = ctx.measureText(price).width;
@@ -2763,7 +2782,7 @@ function render() {
     if (oldPrice && document.getElementById('t-oldprice').checked) {
       const oldPriceY = infoY + barH * 0.34 * infoScale;
       ctx.font = `500 ${W*0.024 * infoScale}px 'Inter', sans-serif`;
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = oldPriceColor;
       ctx.globalAlpha = 0.55 * infoOpacity;
       const ox = infoX + priceW + W*0.02;
       smartText(oldPrice, ox, oldPriceY, 'info');
@@ -2771,7 +2790,7 @@ function render() {
       ctx.beginPath();
       ctx.moveTo(ox, oldPriceY - W*0.008);
       ctx.lineTo(ox + ow, oldPriceY - W*0.008);
-      ctx.strokeStyle = textColor;
+      ctx.strokeStyle = oldPriceColor;
       ctx.lineWidth = 2;
       ctx.stroke();
       ctx.globalAlpha = 1;
