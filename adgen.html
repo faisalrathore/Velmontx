@@ -287,6 +287,12 @@
   .toggle-field { padding: 14px 16px; background: var(--parchment); border: 1px solid var(--border); margin-bottom: 14px; }
   .toggle-field .field-row .field label { margin-bottom: 4px; }
 
+  /* Font/Size/Opacity/Color controls that now live in the floating toolbar
+     (see ELEMENT_META / buildFloatToolbar) instead of the sidebar — the
+     underlying inputs stay in the DOM so existing wiring keeps working,
+     they're just no longer shown here to avoid duplicating the toolbar. */
+  .moved-to-toolbar { display: none !important; }
+
   .size-row {
     display: flex; align-items: center; gap: 8px;
     margin-top: 8px;
@@ -579,6 +585,7 @@
   }
   .float-toolbar .ft-btn:hover { background: rgba(0,0,0,0.08); }
   .float-toolbar .ft-style-btn.active { background: rgba(196,28,28,0.14); color: var(--red); }
+  .float-toolbar .ft-style-btn.active[style*="linear-gradient"] { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
   .float-toolbar .ft-size-val {
     font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #1a1410;
     min-width: 30px; text-align: center;
@@ -1004,10 +1011,14 @@
         <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:6px;">Repositions every element for this aspect ratio in one click. Colors, text, and photo stay as they are — drag anything afterward to fine-tune.</div>
       </div>
 
+      <div style="font-size:10.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; line-height:1.6; padding:10px 12px; background:var(--parchment); border-left:2px solid var(--red); margin-bottom:14px;">
+        <strong style="color:var(--dark);">Tap any element on the canvas</strong> to open its floating toolbar — font, size, bold, italic, underline, color, gradient, and opacity all live there now. The panels below just hold each element's text content, position fine-tuning, and toggles.
+      </div>
+
       <div class="field element-panel" id="panel-headline">
         <label class="toggle-label"><input type="checkbox" id="t-headline" checked><span>Big Background Text</span></label>
         <input type="text" id="f-bigtext" placeholder="e.g. SALE" value="SALE" maxlength="14">
-        <select id="f-headline-font" style="margin-top:8px;">
+        <select id="f-headline-font" class="moved-to-toolbar" style="margin-top:8px;">
           <option value="'Barlow Condensed', sans-serif" data-weight="900" selected>Barlow Condensed (Classic)</option>
           <option value="'Anton', sans-serif" data-weight="400">Anton</option>
           <option value="'Bebas Neue', sans-serif" data-weight="400">Bebas Neue</option>
@@ -1018,7 +1029,7 @@
           <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
           <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
         </select>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Size</label>
           <input type="range" id="sz-headline" min="40" max="300" value="100">
           <span class="size-val" id="szv-headline">100%</span>
@@ -1028,7 +1039,7 @@
           <input type="range" id="rot-headline" min="-45" max="45" value="0">
           <span class="size-val" id="rotv-headline">0°</span>
         </div>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Opacity</label>
           <input type="range" id="op-headline" min="10" max="100" value="100">
           <span class="size-val" id="opv-headline">100%</span>
@@ -1045,12 +1056,12 @@
         <div class="field element-panel" id="panel-discount">
           <label class="toggle-label"><input type="checkbox" id="t-discount" checked><span>Discount Badge</span></label>
           <input type="text" id="f-discount" placeholder="e.g. 40% OFF" value="40% OFF" maxlength="12">
-          <div class="size-row">
+          <div class="size-row moved-to-toolbar">
             <label>Size</label>
             <input type="range" id="sz-discount" min="40" max="300" value="100">
             <span class="size-val" id="szv-discount">100%</span>
           </div>
-          <div class="size-row">
+          <div class="size-row moved-to-toolbar">
             <label>Opacity</label>
             <input type="range" id="op-discount" min="10" max="100" value="100">
             <span class="size-val" id="opv-discount">100%</span>
@@ -1060,12 +1071,12 @@
         <div class="field element-panel" id="panel-cta">
           <label class="toggle-label"><input type="checkbox" id="t-cta" checked><span>CTA Button</span></label>
           <input type="text" id="f-cta" placeholder="e.g. Shop Now" value="Shop Now" maxlength="16">
-          <div class="size-row">
+          <div class="size-row moved-to-toolbar">
             <label>Size</label>
             <input type="range" id="sz-cta" min="40" max="300" value="100">
             <span class="size-val" id="szv-cta">100%</span>
           </div>
-          <div class="size-row">
+          <div class="size-row moved-to-toolbar">
             <label>Opacity</label>
             <input type="range" id="op-cta" min="10" max="100" value="100">
             <span class="size-val" id="opv-cta">100%</span>
@@ -1077,12 +1088,12 @@
       <div class="field element-panel" id="panel-brand">
         <label class="toggle-label"><input type="checkbox" id="t-brand" checked><span>Brand Name</span></label>
         <input type="text" id="f-brand" placeholder="e.g. Nike" value="Your Brand" maxlength="20">
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Size</label>
           <input type="range" id="sz-brand" min="40" max="300" value="100">
           <span class="size-val" id="szv-brand">100%</span>
         </div>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Opacity</label>
           <input type="range" id="op-brand" min="10" max="100" value="100">
           <span class="size-val" id="opv-brand">100%</span>
@@ -1102,7 +1113,7 @@
             <div class="field" style="margin-bottom:0;">
               <label>Product Name</label>
               <input type="text" id="f-product" placeholder="e.g. Joyride Run Flyknit" value="Product Name" maxlength="26">
-              <select id="f-product-font" style="margin-top:6px;">
+              <select id="f-product-font" class="moved-to-toolbar" style="margin-top:6px;">
                 <option value="'Inter', sans-serif" data-weight="700" selected>Inter</option>
                 <option value="'Barlow Condensed', sans-serif" data-weight="900">Barlow Condensed</option>
                 <option value="'Anton', sans-serif" data-weight="400">Anton</option>
@@ -1114,10 +1125,11 @@
                 <option value="'Archivo Black', sans-serif" data-weight="400">Archivo Black</option>
                 <option value="'JetBrains Mono', monospace" data-weight="700">JetBrains Mono</option>
               </select>
-              <div class="color-field" style="margin-top:6px;">
+              <div class="color-field moved-to-toolbar" style="margin-top:6px;">
                 <input type="color" id="f-product-color" value="#ffffff">
                 <input type="text" id="f-product-color-hex" value="#ffffff">
               </div>
+              <div style="font-size:9.5px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Font &amp; color: tap the product name on the canvas above.</div>
             </div>
             <div class="field" style="margin-bottom:0;">
               <label>Price</label>
@@ -1149,12 +1161,12 @@
             <input type="color" id="f-oldprice-color" value="#ffffff">
             <input type="text" id="f-oldprice-color-hex" value="#ffffff">
           </div>
-          <div class="size-row">
+          <div class="size-row moved-to-toolbar">
             <label>Overall</label>
             <input type="range" id="sz-info" min="40" max="300" value="100">
             <span class="size-val" id="szv-info">100%</span>
           </div>
-          <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Sizes and moves the whole product name / price block together — use the two sliders below to fine-tune each line's size independently without breaking them apart.</div>
+          <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">"Overall" size/opacity: tap the product name on the canvas above. Use the two sliders below to fine-tune each line's size independently without breaking them apart.</div>
           <div class="size-row">
             <label>Name</label>
             <input type="range" id="sz-productname" min="50" max="200" value="100">
@@ -1165,7 +1177,7 @@
             <input type="range" id="sz-pricesize" min="50" max="200" value="100">
             <span class="size-val" id="szv-pricesize">100%</span>
           </div>
-          <div class="size-row">
+          <div class="size-row moved-to-toolbar">
             <label>Opacity</label>
             <input type="range" id="op-info" min="10" max="100" value="100">
             <span class="size-val" id="opv-info">100%</span>
@@ -1199,12 +1211,12 @@
             <input type="text" id="f-rating-count" value="3,299 Customers" maxlength="22">
           </div>
         </div>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Size</label>
           <input type="range" id="sz-rating" min="40" max="300" value="100">
           <span class="size-val" id="szv-rating">100%</span>
         </div>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Opacity</label>
           <input type="range" id="op-rating" min="10" max="100" value="100">
           <span class="size-val" id="opv-rating">100%</span>
@@ -1215,12 +1227,12 @@
       <div class="field toggle-field element-panel" id="panel-coupon">
         <label class="toggle-label"><input type="checkbox" id="t-coupon"><span>Coupon Code</span></label>
         <input type="text" id="f-coupon" placeholder="e.g. SAVE40" value="SAVE40" maxlength="16" style="margin-top:8px;">
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Size</label>
           <input type="range" id="sz-coupon" min="40" max="300" value="100">
           <span class="size-val" id="szv-coupon">100%</span>
         </div>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Opacity</label>
           <input type="range" id="op-coupon" min="10" max="100" value="100">
           <span class="size-val" id="opv-coupon">100%</span>
@@ -1231,12 +1243,12 @@
       <div class="field toggle-field element-panel" id="panel-customtag">
         <label class="toggle-label"><input type="checkbox" id="t-customtag"><span>Custom Text Tile</span></label>
         <input type="text" id="f-customtag" placeholder="e.g. New Collection" value="New Collection" maxlength="24" style="margin-top:8px;">
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Size</label>
           <input type="range" id="sz-customtag" min="40" max="300" value="100">
           <span class="size-val" id="szv-customtag">100%</span>
         </div>
-        <div class="size-row">
+        <div class="size-row moved-to-toolbar">
           <label>Opacity</label>
           <input type="range" id="op-customtag" min="10" max="100" value="100">
           <span class="size-val" id="opv-customtag">100%</span>
@@ -2125,22 +2137,25 @@ function scrollToPanel(key) {
 const floatToolbar = document.getElementById('floatToolbar');
 let selectedKey = null;
 
-// Which controls each element actually has. `colorId` points at whichever
-// existing color field governs that element's text — product/price/old
-// price got their own dedicated pickers; everything else still shares the
-// global Text/Accent color the way it always has, so the toolbar edits
-// that shared field rather than inventing a new one.
-// `textStyle: true` marks the plain single-line text elements that support
-// Bold/Italic/Underline toggles — the badge-style elements (discount,
-// rating, tag, coupon) keep their fixed weight since they're small,
-// pre-styled label chips rather than free-form text.
+// Which controls each element actually has.
+// `colorId` — only product/price/old price still use a dedicated DOM color
+// field (they were built that way and it works fine); every other text
+// element now uses its own independent per-element state color instead
+// (colorId: null → toolbar builds a state-backed swatch, falling back to
+// that element's original default — global Text/Accent — until touched).
+// `fontId` — same idea: only headline and product name have a real
+// sidebar <select> left; everything else gets a state-backed font picker
+// in the toolbar from the shared FONT_OPTIONS list.
+// `textStyle: true` — every text-bearing element now gets Font, Bold,
+// Italic, Underline, and Gradient in its toolbar; only `logo` (an image,
+// not text) is excluded.
 const ELEMENT_META = {
-  headline:  { fontId: 'f-headline-font', sizeId: 'sz-headline',  opacityId: 'op-headline',  colorId: 'f-text',   toggleId: 't-headline',  textStyle: true  },
-  brand:     { fontId: null,              sizeId: 'sz-brand',     opacityId: 'op-brand',     colorId: 'f-text',   toggleId: 't-brand',     textStyle: true  },
-  discount:  { fontId: null,              sizeId: 'sz-discount',  opacityId: 'op-discount',  colorId: 'f-accent', toggleId: 't-discount',  textStyle: false },
-  rating:    { fontId: null,              sizeId: 'sz-rating',    opacityId: 'op-rating',    colorId: null,       toggleId: 't-rating',    textStyle: false },
-  customtag: { fontId: null,              sizeId: 'sz-customtag', opacityId: 'op-customtag', colorId: 'f-accent', toggleId: 't-customtag', textStyle: false },
-  coupon:    { fontId: null,              sizeId: 'sz-coupon',    opacityId: 'op-coupon',    colorId: null,       toggleId: 't-coupon',    textStyle: false },
+  headline:  { fontId: 'f-headline-font', sizeId: 'sz-headline',  opacityId: 'op-headline',  colorId: null,       toggleId: 't-headline',  textStyle: true  },
+  brand:     { fontId: null,              sizeId: 'sz-brand',     opacityId: 'op-brand',     colorId: null,       toggleId: 't-brand',     textStyle: true  },
+  discount:  { fontId: null,              sizeId: 'sz-discount',  opacityId: 'op-discount',  colorId: null,       toggleId: 't-discount',  textStyle: true  },
+  rating:    { fontId: null,              sizeId: 'sz-rating',    opacityId: 'op-rating',    colorId: null,       toggleId: 't-rating',    textStyle: true  },
+  customtag: { fontId: null,              sizeId: 'sz-customtag', opacityId: 'op-customtag', colorId: null,       toggleId: 't-customtag', textStyle: true  },
+  coupon:    { fontId: null,              sizeId: 'sz-coupon',    opacityId: 'op-coupon',    colorId: null,       toggleId: 't-coupon',    textStyle: true  },
   info:      { fontId: 'f-product-font',  sizeId: 'sz-info',      opacityId: 'op-info',      colorId: 'f-product-color', toggleId: 't-info', textStyle: true },
   cta:       { fontId: null,              sizeId: 'sz-cta',       opacityId: 'op-cta',       colorId: 'f-accent', toggleId: 't-cta',       textStyle: true  },
   logo:      { fontId: null,              sizeId: 'sz-logo',      opacityId: 'op-logo',      colorId: null,       toggleId: 't-logo',      textStyle: false }
@@ -2158,12 +2173,35 @@ function buildFloatToolbar(key) {
   if (!meta) return;
 
   if (meta.fontId) {
+    // Elements with a real sidebar <select> (headline, product name) —
+    // clone its options and keep both in sync.
     const src = document.getElementById(meta.fontId);
     const sel = document.createElement('select');
     sel.className = 'ft-font';
     sel.innerHTML = src.innerHTML;
     sel.value = src.value;
     sel.addEventListener('change', () => { src.value = sel.value; render(); });
+    floatToolbar.appendChild(sel);
+    floatToolbar.appendChild(ftSep());
+  } else if (meta.textStyle) {
+    // Every other text element has no sidebar font field at all — the
+    // picker here is backed entirely by that element's own style state.
+    const style = getTextStyle(key);
+    const sel = document.createElement('select');
+    sel.className = 'ft-font';
+    FONT_OPTIONS.forEach(f => {
+      const opt = document.createElement('option');
+      opt.value = f.value; opt.dataset.weight = f.weight; opt.textContent = f.label;
+      sel.appendChild(opt);
+    });
+    const fontDefault = DEFAULT_FONT[key] || FONT_OPTIONS[0];
+    sel.value = style.fontFamily || fontDefault.family;
+    sel.addEventListener('change', () => {
+      const chosen = FONT_OPTIONS.find(f => f.value === sel.value);
+      style.fontFamily = sel.value;
+      style.fontWeight = chosen ? chosen.weight : null;
+      render();
+    });
     floatToolbar.appendChild(sel);
     floatToolbar.appendChild(ftSep());
   }
@@ -2194,6 +2232,7 @@ function buildFloatToolbar(key) {
   }
 
   if (meta.colorId) {
+    // Product/price/old price still use their own dedicated sidebar field.
     const src = document.getElementById(meta.colorId);
     const hexSrc = document.getElementById(meta.colorId + '-hex');
     const c = document.createElement('input');
@@ -2203,6 +2242,18 @@ function buildFloatToolbar(key) {
       if (hexSrc) hexSrc.value = c.value;
       render();
     });
+    floatToolbar.appendChild(c);
+    floatToolbar.appendChild(ftSep());
+  } else if (meta.textStyle) {
+    // Every other text element gets its own independent color, stored in
+    // that element's style state and falling back to its original default
+    // (headline/brand fall back to the shared Text color; badges fall
+    // back to their fixed white/dark label color) until overridden.
+    const style = getTextStyle(key);
+    const c = document.createElement('input');
+    c.type = 'color'; c.className = 'ft-color'; c.title = 'Color';
+    c.value = style.color || getDefaultTextColor(key);
+    c.addEventListener('input', () => { style.color = c.value; render(); });
     floatToolbar.appendChild(c);
     floatToolbar.appendChild(ftSep());
   }
@@ -2228,6 +2279,37 @@ function buildFloatToolbar(key) {
     floatToolbar.appendChild(makeStyleBtn('B', 'bold', 'Bold'));
     floatToolbar.appendChild(makeStyleBtn('I', 'italic', 'Italic'));
     floatToolbar.appendChild(makeStyleBtn('U', 'underline', 'Underline'));
+    floatToolbar.appendChild(ftSep());
+
+    // Gradient: a toggle button that reveals two color stops when on.
+    // Rebuilds the whole toolbar on toggle (cheap — it's a handful of
+    // nodes) so the two swatches appear/disappear immediately in place.
+    const gradBtn = document.createElement('button');
+    gradBtn.type = 'button';
+    gradBtn.className = 'ft-btn ft-style-btn' + (style.gradientEnabled ? ' active' : '');
+    gradBtn.title = 'Gradient text color';
+    gradBtn.style.background = style.gradientEnabled
+      ? `linear-gradient(90deg, ${style.gradientColor1}, ${style.gradientColor2})`
+      : '';
+    gradBtn.textContent = 'G';
+    gradBtn.addEventListener('click', () => {
+      style.gradientEnabled = !style.gradientEnabled;
+      render();
+      buildFloatToolbar(key);
+      positionFloatToolbar(key);
+    });
+    floatToolbar.appendChild(gradBtn);
+
+    if (style.gradientEnabled) {
+      const g1 = document.createElement('input');
+      g1.type = 'color'; g1.className = 'ft-color'; g1.title = 'Gradient start color'; g1.value = style.gradientColor1;
+      g1.addEventListener('input', () => { style.gradientColor1 = g1.value; render(); });
+      const g2 = document.createElement('input');
+      g2.type = 'color'; g2.className = 'ft-color'; g2.title = 'Gradient end color'; g2.value = style.gradientColor2;
+      g2.addEventListener('input', () => { style.gradientColor2 = g2.value; render(); });
+      floatToolbar.appendChild(g1);
+      floatToolbar.appendChild(g2);
+    }
     floatToolbar.appendChild(ftSep());
   }
 
@@ -2748,15 +2830,60 @@ function smartText(text, x, y, key) {
   ctx.restore();
 }
 
-// ── PER-ELEMENT BOLD / ITALIC / UNDERLINE ──
-// Toggled from the floating toolbar (not the sidebar) for the plain-text
-// elements: headline, brand, product name, and the CTA button label. Kept
-// as simple in-memory state rather than form fields since nothing else
-// needs to read or persist it beyond the current editing session.
+// ── PER-ELEMENT TEXT STYLE (font / color / bold / italic / underline / gradient) ──
+// Every text-bearing element (headline, brand, discount, rating, custom
+// tag, coupon, product name, CTA) gets its own independent style here,
+// edited from the floating toolbar. Each field falls back to that
+// element's original hard-coded default when unset, so nothing changes
+// visually until the user actually touches a control — this is what lets
+// the toolbar be the single place to edit these instead of duplicating
+// them in the sidebar.
 const TEXT_STYLE_STATE = {};
 function getTextStyle(key) {
-  if (!TEXT_STYLE_STATE[key]) TEXT_STYLE_STATE[key] = { bold: false, italic: false, underline: false };
+  if (!TEXT_STYLE_STATE[key]) {
+    TEXT_STYLE_STATE[key] = {
+      bold: false, italic: false, underline: false,
+      color: null,               // null = use that element's built-in default color
+      fontFamily: null, fontWeight: null, // null = use that element's built-in default font
+      gradientEnabled: false, gradientColor1: '#ffffff', gradientColor2: '#e0342a'
+    };
+  }
   return TEXT_STYLE_STATE[key];
+}
+// Shared font list offered in every toolbar font picker, including the
+// elements that never had a dedicated font select before (brand, discount,
+// rating, custom tag, coupon, CTA).
+const FONT_OPTIONS = [
+  { value: "'Inter', sans-serif", weight: 700, label: 'Inter' },
+  { value: "'Barlow Condensed', sans-serif", weight: 900, label: 'Barlow Condensed' },
+  { value: "'Anton', sans-serif", weight: 400, label: 'Anton' },
+  { value: "'Bebas Neue', sans-serif", weight: 400, label: 'Bebas Neue' },
+  { value: "'Oswald', sans-serif", weight: 700, label: 'Oswald' },
+  { value: "'Montserrat', sans-serif", weight: 800, label: 'Montserrat' },
+  { value: "'Poppins', sans-serif", weight: 700, label: 'Poppins' },
+  { value: "'Playfair Display', serif", weight: 800, label: 'Playfair Display' },
+  { value: "'Archivo Black', sans-serif", weight: 400, label: 'Archivo Black' },
+  { value: "'JetBrains Mono', monospace", weight: 700, label: 'JetBrains Mono' }
+];
+// Each element's true built-in default family/weight (matches what its
+// draw function falls back to) — used so the toolbar's font picker shows
+// what's actually rendering, not just the first option in the list, for
+// elements that don't have a dedicated sidebar <select> of their own.
+const DEFAULT_FONT = {
+  brand:     { family: "'Inter', sans-serif", weight: 700 },
+  discount:  { family: "'Barlow Condensed', sans-serif", weight: 800 },
+  rating:    { family: "'Inter', sans-serif", weight: 600 },
+  customtag: { family: "'JetBrains Mono', monospace", weight: 700 },
+  coupon:    { family: "'JetBrains Mono', monospace", weight: 700 },
+  cta:       { family: "'Inter', sans-serif", weight: 700 }
+};
+// Same idea for color: headline/brand fall back to the shared Text Color
+// swatch (so they match old behavior until overridden); the badge-style
+// elements fall back to their fixed white/dark label color.
+function getDefaultTextColor(key) {
+  if (key === 'headline' || key === 'brand') return val('f-text');
+  const DEFAULT_TEXT_COLOR = { discount: '#ffffff', rating: '#1a1410', customtag: '#ffffff', coupon: '#1a1410', cta: '#ffffff' };
+  return DEFAULT_TEXT_COLOR[key] || '#ffffff';
 }
 // Bold "boosts" whatever weight the chosen font would normally use, rather
 // than assuming a fixed value — so a font already picked at 900 doesn't
@@ -2766,6 +2893,38 @@ function effectiveWeight(baseWeight, key) {
 }
 function fontStylePrefix(key) {
   return getTextStyle(key).italic ? 'italic ' : '';
+}
+// Resolves the font family for an element that has no dedicated sidebar
+// <select> (i.e. isn't driven by a fontId in ELEMENT_META) — falls back to
+// that element's original hard-coded family/weight until overridden.
+function resolveFont(key, defaultFamily, defaultWeight) {
+  const st = getTextStyle(key);
+  return { family: st.fontFamily || defaultFamily, weight: effectiveWeight(st.fontWeight || defaultWeight, key) };
+}
+// Resolves the solid fallback color for an element with no dedicated color
+// field — falls back to that element's original default (usually the
+// shared Text or Accent color) until overridden per-element.
+function resolveColor(key, defaultColor) {
+  const st = getTextStyle(key);
+  return st.color || defaultColor;
+}
+// Returns either the resolved solid color or a CanvasGradient spanning the
+// text's measured width, depending on whether Gradient is toggled on for
+// this element. Must be called AFTER ctx.font/ctx.textAlign are set for the
+// text being drawn (it measures with the current font) and BEFORE the
+// fillText/smartText call that uses the result as ctx.fillStyle.
+function resolveFillStyle(key, defaultColor, text, x, y) {
+  const st = getTextStyle(key);
+  const solid = st.color || defaultColor;
+  if (!st.gradientEnabled || !text) return solid;
+  const width = ctx.measureText(text).width;
+  let startX = x, endX = x + width;
+  if (ctx.textAlign === 'center') { startX = x - width / 2; endX = x + width / 2; }
+  else if (ctx.textAlign === 'right') { startX = x - width; endX = x; }
+  const grad = ctx.createLinearGradient(startX, y, endX, y);
+  grad.addColorStop(0, st.gradientColor1);
+  grad.addColorStop(1, st.gradientColor2);
+  return grad;
 }
 // Manually draws an underline under the last-drawn text, since canvas has
 // no native text-decoration. Must be called immediately after the fillText/
@@ -2803,7 +2962,10 @@ function fillRoundRect(x, y, w, h, r) {
 
 // Draws a pill-shaped chip and returns its width. anchorRight=true positions
 // the chip so its right edge sits at x (used to right-align a row of chips).
-function drawPill(x, y, h, text, bg, fg, font, anchorRight) {
+// `key` is optional — when passed, the pill's text color/gradient/underline
+// come from that element's toolbar style (falling back to `fg` when
+// untouched) instead of always using the plain `fg` color.
+function drawPill(x, y, h, text, bg, fg, font, anchorRight, key) {
   ctx.save();
   ctx.font = font;
   const padX = h * 0.42;
@@ -2812,10 +2974,12 @@ function drawPill(x, y, h, text, bg, fg, font, anchorRight) {
   const drawX = anchorRight ? x - w : x;
   ctx.fillStyle = bg;
   fillRoundRect(drawX, y, w, h, h / 2);
-  ctx.fillStyle = fg;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
-  ctx.fillText(text, drawX + padX, y + h / 2 + h * 0.04);
+  const tx = drawX + padX, ty = y + h / 2 + h * 0.04;
+  ctx.fillStyle = key ? resolveFillStyle(key, fg, text, tx, ty) : fg;
+  ctx.fillText(text, tx, ty);
+  if (key) drawTextUnderline(text, tx, ty, key);
   ctx.restore();
   return w;
 }
@@ -2911,10 +3075,10 @@ function render() {
       ctx.restore();
     }
 
-    ctx.fillStyle = textColor;
     ctx.globalAlpha = headlineOpacity;
     ctx.translate(hx, hy);
     ctx.rotate(headlineRotDeg * Math.PI / 180);
+    ctx.fillStyle = resolveFillStyle('headline', textColor, bigText, 0, 0);
     smartText(bigText, 0, 0, 'headline');
     drawTextUnderline(bigText, 0, 0, 'headline');
     ctx.restore();
@@ -2926,11 +3090,11 @@ function render() {
     if (!showBrand) return;
     ctx.save();
     const brandSize = W*0.028 * sc('brand');
-    const brandWeight = effectiveWeight(700, 'brand');
-    ctx.font = `${fontStylePrefix('brand')}${brandWeight} ${brandSize}px 'Inter', sans-serif`;
-    ctx.fillStyle = textColor;
+    const brandFont = resolveFont('brand', "'Inter', sans-serif", 700);
+    ctx.font = `${fontStylePrefix('brand')}${brandFont.weight} ${brandSize}px ${brandFont.family}`;
     ctx.globalAlpha = 0.9 * opacityOf('brand');
     const bx = layout.brand.x * W, by = layout.brand.y * H;
+    ctx.fillStyle = resolveFillStyle('brand', textColor, brandText, bx, by);
     smartText(brandText, bx, by, 'brand');
     drawTextUnderline(brandText, bx, by, 'brand');
     const bw = ctx.measureText(brandText).width;
@@ -2950,18 +3114,25 @@ function render() {
     ctx.arc(0, 0, r, 0, Math.PI*2);
     ctx.fillStyle = accent;
     ctx.fill();
-    ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const dSize = fitFont(ctx, discount, "'Barlow Condensed', sans-serif", 800, r*1.5, r*0.34, 10);
-    ctx.font = `800 ${dSize}px 'Barlow Condensed', sans-serif`;
+    const discountFont = resolveFont('discount', "'Barlow Condensed', sans-serif", 800);
+    const dSize = fitFont(ctx, discount, discountFont.family, discountFont.weight, r*1.5, r*0.34, 10);
+    ctx.font = `${fontStylePrefix('discount')}${discountFont.weight} ${dSize}px ${discountFont.family}`;
     const words = discount.split(' ');
     if (words.length > 1) {
+      ctx.fillStyle = resolveFillStyle('discount', '#fff', words[0], 0, -dSize*0.32);
       ctx.fillText(words[0], 0, -dSize*0.32);
-      ctx.font = `600 ${dSize*0.5}px 'Inter', sans-serif`;
-      ctx.fillText(words.slice(1).join(' '), 0, dSize*0.38);
+      drawTextUnderline(words[0], 0, -dSize*0.32, 'discount');
+      ctx.font = `${fontStylePrefix('discount')}600 ${dSize*0.5}px 'Inter', sans-serif`;
+      const rest = words.slice(1).join(' ');
+      ctx.fillStyle = resolveFillStyle('discount', '#fff', rest, 0, dSize*0.38);
+      ctx.fillText(rest, 0, dSize*0.38);
+      drawTextUnderline(rest, 0, dSize*0.38, 'discount');
     } else {
+      ctx.fillStyle = resolveFillStyle('discount', '#fff', discount, 0, 0);
       ctx.fillText(discount, 0, 0);
+      drawTextUnderline(discount, 0, 0, 'discount');
     }
     ctx.restore();
     elementBoxes.discount = { x: bx - r, y: by - r, w: r * 2, h: r * 2 };
@@ -2978,7 +3149,11 @@ function render() {
     const pillY = layout.rating.y * H;
     const pillRightX = layout.rating.x * W;
     const starFont = `700 ${pillH * 0.52}px Arial`;
-    const countFont = `600 ${pillH * 0.4}px 'Inter', sans-serif`;
+    // Font/bold/italic/color/gradient from the toolbar apply to the review-
+    // count text, not the star glyphs themselves (a custom font on ★/☆
+    // characters wouldn't render meaningfully).
+    const countFontRes = resolveFont('rating', "'Inter', sans-serif", 600);
+    const countFont = `${fontStylePrefix('rating')}${countFontRes.weight} ${pillH * 0.4}px ${countFontRes.family}`;
 
     ctx.save();
     ctx.globalAlpha = opacityOf('rating');
@@ -2999,9 +3174,11 @@ function render() {
     ctx.font = starFont;
     ctx.fillText(starStr, pillX + padX, pillY + pillH / 2 + pillH * 0.04);
     if (count) {
-      ctx.fillStyle = '#1a1410';
       ctx.font = countFont;
-      ctx.fillText(count, pillX + padX + starsW + gap, pillY + pillH / 2 + pillH * 0.04);
+      const countX = pillX + padX + starsW + gap, countY = pillY + pillH / 2 + pillH * 0.04;
+      ctx.fillStyle = resolveFillStyle('rating', '#1a1410', count, countX, countY);
+      ctx.fillText(count, countX, countY);
+      drawTextUnderline(count, countX, countY, 'rating');
     }
     ctx.restore();
     elementBoxes.rating = { x: pillX, y: pillY, w: totalW, h: pillH };
@@ -3012,9 +3189,10 @@ function render() {
     ctx.save();
     ctx.globalAlpha = opacityOf('customtag');
     const tagH = H * 0.044 * sc('customtag');
-    const tagFont = `700 ${tagH * 0.4}px 'JetBrains Mono', monospace`;
+    const tagFontRes = resolveFont('customtag', "'JetBrains Mono', monospace", 700);
+    const tagFont = `${fontStylePrefix('customtag')}${tagFontRes.weight} ${tagH * 0.4}px ${tagFontRes.family}`;
     const tagX = layout.customtag.x * W, tagY = layout.customtag.y * H;
-    const tagW = drawPill(tagX, tagY, tagH, val('f-customtag').toUpperCase(), accent, '#fff', tagFont, false);
+    const tagW = drawPill(tagX, tagY, tagH, val('f-customtag').toUpperCase(), accent, '#fff', tagFont, false, 'customtag');
     elementBoxes.customtag = { x: tagX, y: tagY, w: tagW, h: tagH };
     ctx.restore();
   }
@@ -3024,9 +3202,10 @@ function render() {
     ctx.save();
     ctx.globalAlpha = opacityOf('coupon');
     const couponH = H * 0.044 * sc('coupon');
-    const couponFont = `700 ${couponH * 0.4}px 'JetBrains Mono', monospace`;
+    const couponFontRes = resolveFont('coupon', "'JetBrains Mono', monospace", 700);
+    const couponFont = `${fontStylePrefix('coupon')}${couponFontRes.weight} ${couponH * 0.4}px ${couponFontRes.family}`;
     const couponX = layout.coupon.x * W, couponY = layout.coupon.y * H;
-    const couponW = drawPill(couponX, couponY, couponH, 'CODE: ' + val('f-coupon').toUpperCase(), 'rgba(255,255,255,0.94)', '#1a1410', couponFont, true);
+    const couponW = drawPill(couponX, couponY, couponH, 'CODE: ' + val('f-coupon').toUpperCase(), 'rgba(255,255,255,0.94)', '#1a1410', couponFont, true, 'coupon');
     elementBoxes.coupon = { x: couponX - couponW, y: couponY, w: couponW, h: couponH };
     ctx.restore();
   }
@@ -3058,9 +3237,9 @@ function render() {
     const oldPriceColor = val('f-oldprice-color');
 
     const productSize = W*0.028 * infoScale * productMult;
-    ctx.fillStyle = productColor;
     ctx.globalAlpha = infoOpacity;
     ctx.font = `${fontStylePrefix('info')}${productWeight} ${productSize}px ${productFamily}`;
+    ctx.fillStyle = resolveFillStyle('info', productColor, product, infoX, infoY);
     smartText(product, infoX, infoY, 'info');
     drawTextUnderline(product, infoX, infoY, 'info');
     const productW = ctx.measureText(product).width;
@@ -3099,8 +3278,8 @@ function render() {
     if (!(cta && document.getElementById('t-cta').checked)) return;
     ctx.save();
     const ctaScale = sc('cta');
-    const ctaWeight = effectiveWeight(700, 'cta');
-    ctx.font = `${fontStylePrefix('cta')}${ctaWeight} ${W*0.024 * ctaScale}px 'Inter', sans-serif`;
+    const ctaFont = resolveFont('cta', "'Inter', sans-serif", 700);
+    ctx.font = `${fontStylePrefix('cta')}${ctaFont.weight} ${W*0.024 * ctaScale}px ${ctaFont.family}`;
     const ctaW = ctx.measureText(cta).width + W*0.07 * ctaScale;
     const ctaH = H*0.06 * ctaScale;
     const ctaCenterX = layout.cta.x * W;
@@ -3110,9 +3289,9 @@ function render() {
     ctx.globalAlpha = opacityOf('cta');
     ctx.fillStyle = accent;
     ctx.fillRect(ctaX, ctaY, ctaW, ctaH);
-    ctx.fillStyle = '#fff';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = resolveFillStyle('cta', '#fff', cta + ' →', ctaCenterX, ctaCenterY + 1);
     ctx.fillText(cta + ' →', ctaCenterX, ctaCenterY + 1);
     drawTextUnderline(cta + ' →', ctaCenterX, ctaCenterY + 1, 'cta');
     ctx.restore();
