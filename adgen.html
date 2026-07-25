@@ -542,6 +542,54 @@
   }
   .grid-overlay.show { opacity: 1; }
 
+  /* ── FLOATING TEXT TOOLBAR (Canva-style) ──
+     Appears above whichever handle was just tapped (a real click, not a
+     drag) with inline font/size/color/opacity controls for that element —
+     each control just mirrors the matching sidebar field so both stay in
+     sync no matter which one is used. Never exported to the PNG. */
+  .float-toolbar {
+    position: absolute; top: 0; left: 0; z-index: 20;
+    transform: translate(-50%, calc(-100% - 12px));
+    display: flex; align-items: center; gap: 4px;
+    background: #fff; border-radius: 999px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.28), 0 0 0 1px rgba(0,0,0,0.06);
+    padding: 5px 7px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.12s;
+    white-space: nowrap;
+  }
+  .float-toolbar.show { opacity: 1; pointer-events: auto; }
+  .float-toolbar::after {
+    content: ''; position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent; border-top-color: #fff;
+  }
+  .float-toolbar select.ft-font {
+    font-family: 'Inter', sans-serif; font-size: 11px; font-weight: 600;
+    color: #1a1410; border: none; background: #f3efe8; border-radius: 999px;
+    padding: 5px 22px 5px 10px; cursor: pointer; max-width: 118px;
+  }
+  .float-toolbar .ft-size {
+    display: flex; align-items: center; gap: 2px;
+    background: #f3efe8; border-radius: 999px; padding: 2px;
+  }
+  .float-toolbar .ft-btn {
+    width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent; cursor: pointer; border-radius: 50%;
+    font-size: 14px; line-height: 1; color: #1a1410; flex-shrink: 0;
+  }
+  .float-toolbar .ft-btn:hover { background: rgba(0,0,0,0.08); }
+  .float-toolbar .ft-size-val {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #1a1410;
+    min-width: 30px; text-align: center;
+  }
+  .float-toolbar input[type=color].ft-color {
+    width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%;
+    cursor: pointer; background: none;
+  }
+  .float-toolbar input[type=range].ft-opacity { width: 64px; accent-color: var(--red); }
+  .float-toolbar .ft-sep { width: 1px; height: 18px; background: rgba(0,0,0,0.1); flex-shrink: 0; }
+
   /* ── META SAFE-ZONE OVERLAY (editor-only guide, never exported) ──
      Dashed box marking the region Meta recommends keeping text/logos
      inside for the current ad size — accounts for Stories/Reels UI
@@ -1373,6 +1421,7 @@
               <div class="handle" data-key="info" title="Drag: product name / price block"></div>
               <div class="handle" data-key="cta" title="Drag: CTA button"></div>
               <div class="handle hidden-handle" data-key="logo" title="Drag: logo"></div>
+              <div class="float-toolbar" id="floatToolbar"></div>
             </div>
             <div class="grid-overlay show" id="gridOverlay"></div>
             <div class="safezone-overlay show" id="safezoneOverlay"><span class="safezone-label">Safe Zone</span></div>
@@ -2003,6 +2052,9 @@ function updateHandleVisibility() {
   document.querySelectorAll('.handle').forEach(h => {
     h.classList.toggle('hidden-handle', !vis[h.dataset.key]);
   });
+  // If the currently-selected element just got hidden (its checkbox turned
+  // off, e.g. via the toolbar's own ✕ button), close the toolbar too.
+  if (selectedKey && vis[selectedKey] === false) deselectElement();
 }
 
 // Delta-based dragging: nothing moves on the initial click — the element
@@ -2036,9 +2088,11 @@ function makeDraggable(el, getPos, onMove, clampMin, clampMax) {
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
       // A tap (no real drag) jumps the left-hand toolbar straight to that
-      // element's own settings panel, so clicking anything on the preview
-      // takes you right to its controls instead of scrolling to find them.
-      if (!moved) scrollToPanel(el.dataset.key);
+      // A tap (no real drag) opens the floating Canva-style toolbar right
+      // above that element, instead of scrolling the page to its sidebar
+      // panel — quicker edits without losing your place on the canvas.
+      if (!moved) selectElement(el.dataset.key);
+      else if (selectedKey === el.dataset.key) positionFloatToolbar(el.dataset.key);
     };
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
@@ -2046,7 +2100,9 @@ function makeDraggable(el, getPos, onMove, clampMin, clampMax) {
 }
 
 // Scrolls the left form column to the clicked element's own settings panel
-// and briefly highlights it, so it's obvious which controls just appeared.
+// and briefly highlights it — still used as a fallback (e.g. from the
+// "Hide element" action in the floating toolbar isn't relevant here, but
+// kept available in case other code wants to jump to a panel directly).
 function scrollToPanel(key) {
   const panel = document.getElementById('panel-' + key);
   if (!panel) return;
@@ -2059,6 +2115,146 @@ function scrollToPanel(key) {
   clearTimeout(scrollToPanel._t);
   scrollToPanel._t = setTimeout(() => panel.classList.remove('panel-flash'), 900);
 }
+
+// ── FLOATING TEXT TOOLBAR (Canva-style) ──
+// Tapping a handle (a real click, not a drag) opens a small pill toolbar
+// right above it with inline font/size/color/opacity controls. Every
+// control here just mirrors the matching sidebar field (same ids, same
+// event) so editing from the toolbar or the sidebar always stays in sync —
+// no separate state to keep track of.
+const floatToolbar = document.getElementById('floatToolbar');
+let selectedKey = null;
+
+// Which controls each element actually has. `colorId` points at whichever
+// existing color field governs that element's text — product/price/old
+// price got their own dedicated pickers; everything else still shares the
+// global Text/Accent color the way it always has, so the toolbar edits
+// that shared field rather than inventing a new one.
+const ELEMENT_META = {
+  headline:  { fontId: 'f-headline-font', sizeId: 'sz-headline',  opacityId: 'op-headline',  colorId: 'f-text',   toggleId: 't-headline'  },
+  brand:     { fontId: null,              sizeId: 'sz-brand',     opacityId: 'op-brand',     colorId: 'f-text',   toggleId: 't-brand'     },
+  discount:  { fontId: null,              sizeId: 'sz-discount',  opacityId: 'op-discount',  colorId: 'f-accent', toggleId: 't-discount'  },
+  rating:    { fontId: null,              sizeId: 'sz-rating',    opacityId: 'op-rating',    colorId: null,       toggleId: 't-rating'    },
+  customtag: { fontId: null,              sizeId: 'sz-customtag', opacityId: 'op-customtag', colorId: 'f-accent', toggleId: 't-customtag' },
+  coupon:    { fontId: null,              sizeId: 'sz-coupon',    opacityId: 'op-coupon',    colorId: null,       toggleId: 't-coupon'    },
+  info:      { fontId: 'f-product-font',  sizeId: 'sz-info',      opacityId: 'op-info',      colorId: 'f-product-color', toggleId: 't-info' },
+  cta:       { fontId: null,              sizeId: 'sz-cta',       opacityId: 'op-cta',       colorId: 'f-accent', toggleId: 't-cta'       },
+  logo:      { fontId: null,              sizeId: 'sz-logo',      opacityId: 'op-logo',      colorId: null,       toggleId: 't-logo'      }
+};
+
+function ftSep() {
+  const d = document.createElement('div');
+  d.className = 'ft-sep';
+  return d;
+}
+
+function buildFloatToolbar(key) {
+  const meta = ELEMENT_META[key];
+  floatToolbar.innerHTML = '';
+  if (!meta) return;
+
+  if (meta.fontId) {
+    const src = document.getElementById(meta.fontId);
+    const sel = document.createElement('select');
+    sel.className = 'ft-font';
+    sel.innerHTML = src.innerHTML;
+    sel.value = src.value;
+    sel.addEventListener('change', () => { src.value = sel.value; render(); });
+    floatToolbar.appendChild(sel);
+    floatToolbar.appendChild(ftSep());
+  }
+
+  if (meta.sizeId) {
+    const src = document.getElementById(meta.sizeId);
+    const wrap = document.createElement('div');
+    wrap.className = 'ft-size';
+    const minus = document.createElement('button');
+    minus.type = 'button'; minus.className = 'ft-btn'; minus.textContent = '−'; minus.title = 'Smaller';
+    const valEl = document.createElement('span');
+    valEl.className = 'ft-size-val';
+    valEl.textContent = src.value + '%';
+    const plus = document.createElement('button');
+    plus.type = 'button'; plus.className = 'ft-btn'; plus.textContent = '+'; plus.title = 'Bigger';
+    const step = 10;
+    const apply = (nv) => {
+      nv = Math.max(parseInt(src.min, 10), Math.min(parseInt(src.max, 10), nv));
+      src.value = nv;
+      valEl.textContent = nv + '%';
+      src.dispatchEvent(new Event('input'));
+    };
+    minus.addEventListener('click', () => apply(parseInt(src.value, 10) - step));
+    plus.addEventListener('click', () => apply(parseInt(src.value, 10) + step));
+    wrap.appendChild(minus); wrap.appendChild(valEl); wrap.appendChild(plus);
+    floatToolbar.appendChild(wrap);
+    floatToolbar.appendChild(ftSep());
+  }
+
+  if (meta.colorId) {
+    const src = document.getElementById(meta.colorId);
+    const hexSrc = document.getElementById(meta.colorId + '-hex');
+    const c = document.createElement('input');
+    c.type = 'color'; c.className = 'ft-color'; c.value = src.value; c.title = 'Color';
+    c.addEventListener('input', () => {
+      src.value = c.value;
+      if (hexSrc) hexSrc.value = c.value;
+      render();
+    });
+    floatToolbar.appendChild(c);
+    floatToolbar.appendChild(ftSep());
+  }
+
+  if (meta.opacityId) {
+    const src = document.getElementById(meta.opacityId);
+    const op = document.createElement('input');
+    op.type = 'range'; op.className = 'ft-opacity';
+    op.min = src.min; op.max = src.max; op.value = src.value; op.title = 'Opacity';
+    op.addEventListener('input', () => { src.value = op.value; src.dispatchEvent(new Event('input')); });
+    floatToolbar.appendChild(op);
+    floatToolbar.appendChild(ftSep());
+  }
+
+  const hideBtn = document.createElement('button');
+  hideBtn.type = 'button'; hideBtn.className = 'ft-btn'; hideBtn.title = 'Hide this element';
+  hideBtn.textContent = '✕';
+  hideBtn.addEventListener('click', () => {
+    const t = document.getElementById(meta.toggleId);
+    if (t) { t.checked = false; t.dispatchEvent(new Event('change')); }
+    deselectElement();
+  });
+  floatToolbar.appendChild(hideBtn);
+}
+
+function positionFloatToolbar(key) {
+  const h = document.querySelector('.handle[data-key="' + key + '"]');
+  if (!h) return;
+  const parentRect = editLayer.getBoundingClientRect();
+  const hRect = h.getBoundingClientRect();
+  floatToolbar.style.left = (hRect.left - parentRect.left + hRect.width / 2) + 'px';
+  floatToolbar.style.top = (hRect.top - parentRect.top) + 'px';
+}
+
+function selectElement(key) {
+  if (!key || !ELEMENT_META[key]) return;
+  selectedKey = key;
+  buildFloatToolbar(key);
+  positionFloatToolbar(key);
+  floatToolbar.classList.add('show');
+}
+
+function deselectElement() {
+  selectedKey = null;
+  floatToolbar.classList.remove('show');
+}
+
+// Tapping anywhere outside the toolbar/handles closes it, same as Canva.
+document.addEventListener('pointerdown', (e) => {
+  if (!selectedKey) return;
+  if (e.target.closest && (e.target.closest('.handle') || e.target.closest('.float-toolbar'))) return;
+  deselectElement();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && selectedKey) deselectElement();
+});
 
 document.querySelectorAll('.handle').forEach(h => {
   makeDraggable(
@@ -2941,6 +3137,9 @@ function render() {
   // no more fixed-size buttons that miss large or small text.
   syncHandleGeometry();
   positionUploadOverlay(layout);
+  // Keep the floating toolbar glued to its element across re-renders
+  // (font/size/color edits, drag, template swaps, aspect-ratio changes).
+  if (selectedKey) positionFloatToolbar(selectedKey);
 }
 
 // Before a photo is uploaded, the "click or drop a photo" prompt used to
