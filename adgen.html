@@ -1226,6 +1226,38 @@
       </div>
 
       <div class="field toggle-field">
+        <label class="toggle-label"><input type="checkbox" id="t-shapebackdrop"><span>Backdrop Shape (optional soft accent shape — off by default, replaces the old solid bottom bar)</span></label>
+        <div class="field-row" style="margin-top:8px;">
+          <div class="field" style="margin-bottom:0;">
+            <label>Shape</label>
+            <select id="f-shapebackdrop-type">
+              <option value="rectangle" selected>Rectangle (bottom band)</option>
+              <option value="square">Square</option>
+              <option value="circle">Circle</option>
+            </select>
+          </div>
+          <div class="field" style="margin-bottom:0;">
+            <label>Color</label>
+            <div class="color-field">
+              <input type="color" id="f-shapebackdrop-color" value="#000000">
+              <input type="text" id="f-shapebackdrop-color-hex" value="#000000">
+            </div>
+          </div>
+        </div>
+        <div class="size-row">
+          <label>Opacity</label>
+          <input type="range" id="sz-shapebackdrop-opacity" min="5" max="90" value="35">
+          <span class="size-val" id="szv-shapebackdrop-opacity">35%</span>
+        </div>
+        <div class="size-row">
+          <label>Softness</label>
+          <input type="range" id="sz-shapebackdrop-blur" min="0" max="100" value="60">
+          <span class="size-val" id="szv-shapebackdrop-blur">60%</span>
+        </div>
+        <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Edges are always feathered — higher Softness blurs the shape's edge further so it fades out rather than cutting off with a hard line.</div>
+      </div>
+
+      <div class="field toggle-field">
         <label class="toggle-label"><input type="checkbox" id="t-textbackdrop"><span>Text Backdrop (soft blurred panel behind the headline for readability)</span></label>
         <div class="size-row">
           <label>Blur</label>
@@ -1667,6 +1699,7 @@ syncColor('f-accent','f-accent-hex');
 syncColor('f-text','f-text-hex');
 syncColor('f-overlay1','f-overlay1-hex');
 syncColor('f-overlay2','f-overlay2-hex');
+syncColor('f-shapebackdrop-color','f-shapebackdrop-color-hex');
 
 // ── BACKGROUND GRADIENT: two simple circles, one per stop. Each has its
 // own eyedropper so colors can be picked straight off the uploaded photo
@@ -1737,8 +1770,17 @@ document.getElementById('resetColorsBtn').addEventListener('click', () => {
 ['t-headline','t-brand','t-info','t-discount','t-cta','t-oldprice','t-rating','t-coupon','t-customtag'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => { updateHandleVisibility(); render(); });
 });
-['t-overlay','t-textbackdrop'].forEach(id => {
+['t-overlay','t-textbackdrop','t-shapebackdrop'].forEach(id => {
   document.getElementById(id).addEventListener('change', render);
+});
+document.getElementById('f-shapebackdrop-type').addEventListener('change', render);
+document.getElementById('sz-shapebackdrop-opacity').addEventListener('input', () => {
+  document.getElementById('szv-shapebackdrop-opacity').textContent = document.getElementById('sz-shapebackdrop-opacity').value + '%';
+  render();
+});
+document.getElementById('sz-shapebackdrop-blur').addEventListener('input', () => {
+  document.getElementById('szv-shapebackdrop-blur').textContent = document.getElementById('sz-shapebackdrop-blur').value + '%';
+  render();
 });
 [
   'layer-headline','layer-brand','layer-discount','layer-rating',
@@ -2775,13 +2817,43 @@ function render() {
     }
   }
 
-  // Bottom bar — decorative translucent strip; the text on top of it moves
-  // independently. Always drawn here (not layer-togglable — it's a
-  // decorative backdrop, not a text/badge element).
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.28)';
-  ctx.fillRect(0, H - barH, W, barH);
-  ctx.restore();
+  // Backdrop Shape — optional decorative accent shape (rectangle / square /
+  // circle), off by default. Replaces the old always-on solid bottom bar:
+  // instead of a hard-edged rect, the shape is drawn then blurred via
+  // ctx.filter so its edge always fades out rather than cutting off with a
+  // hard line — "transparent with blurred/soft edges, not solid."
+  if (document.getElementById('t-shapebackdrop').checked) {
+    const shType = document.getElementById('f-shapebackdrop-type').value;
+    const shColor = val('f-shapebackdrop-color');
+    const shOpacity = (parseInt(document.getElementById('sz-shapebackdrop-opacity').value, 10) || 0) / 100;
+    const shBlurPct = (parseInt(document.getElementById('sz-shapebackdrop-blur').value, 10) || 0) / 100;
+    if (shOpacity > 0) {
+      ctx.save();
+      // Blur radius scales with canvas size so "Softness" feels consistent
+      // across every aspect ratio — minimum kept non-zero so the edge is
+      // never perfectly hard even at low Softness values.
+      const blurPx = Math.max(2, Math.min(W, H) * 0.09 * shBlurPct);
+      ctx.filter = `blur(${blurPx}px)`;
+      ctx.globalAlpha = shOpacity;
+      ctx.fillStyle = shColor;
+      if (shType === 'rectangle') {
+        // Bottom band, inset from the edges by roughly the blur radius so
+        // the feathered edge doesn't get clipped by the canvas bounds.
+        const inset = blurPx * 0.6;
+        ctx.fillRect(inset, H - barH, W - inset * 2, barH - inset);
+      } else if (shType === 'square') {
+        const side = Math.min(W, H) * 0.5;
+        ctx.fillRect((W - side) / 2, H - side - blurPx, side, side);
+      } else { // circle
+        const r = Math.min(W, H) * 0.28;
+        ctx.beginPath();
+        ctx.arc(W / 2, H - r * 0.9, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.filter = 'none';
+      ctx.restore();
+    }
+  }
 
   // ── PASS 2: front-layer elements (the default) — everything not sent
   // behind the photo, drawn on top of it as usual ──
