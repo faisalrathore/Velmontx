@@ -588,7 +588,11 @@
     width: 24px; height: 24px; padding: 0; border: none; border-radius: 50%;
     cursor: pointer; background: none;
   }
-  .float-toolbar input[type=range].ft-opacity { width: 64px; accent-color: var(--red); }
+  .float-toolbar input[type=range].ft-opacity {
+    width: 64px; accent-color: var(--red);
+    appearance: auto; -webkit-appearance: auto;
+    border: none; background: transparent; padding: 0; height: 16px;
+  }
   .float-toolbar .ft-sep { width: 1px; height: 18px; background: rgba(0,0,0,0.1); flex-shrink: 0; }
 
   /* ── META SAFE-ZONE OVERLAY (editor-only guide, never exported) ──
@@ -2993,6 +2997,44 @@ function fillRoundRect(x, y, w, h, r) {
   }
 }
 
+// ── MANUAL SOFT/BLURRED EDGES (no ctx.filter) ──
+// Canvas's ctx.filter = 'blur(...)' is unreliable across browsers — most
+// notably it doesn't apply in some Safari builds, which made "blurred"
+// backdrop panels render as a hard-edged solid box instead. These draw a
+// soft edge by stacking several progressively larger, fainter copies of
+// the same shape outward from a solid core — works identically everywhere
+// since it only uses fillRect/arc + globalAlpha, both universally supported.
+function fillSoftRoundRect(x, y, w, h, r, blurPx) {
+  if (blurPx <= 0.5) { fillRoundRect(x, y, w, h, r); return; }
+  const baseAlpha = ctx.globalAlpha;
+  const layers = 7;
+  for (let i = layers; i >= 1; i--) {
+    const t = i / layers;
+    const pad = blurPx * t;
+    ctx.globalAlpha = baseAlpha * Math.pow(1 - t, 1.6) * 0.65;
+    fillRoundRect(x - pad, y - pad, w + pad * 2, h + pad * 2, r + pad);
+  }
+  ctx.globalAlpha = baseAlpha;
+  fillRoundRect(x, y, w, h, r);
+}
+function fillSoftCircle(cx, cy, radius, blurPx) {
+  if (blurPx <= 0.5) { ctx.beginPath(); ctx.arc(cx, cy, radius, 0, Math.PI * 2); ctx.fill(); return; }
+  const baseAlpha = ctx.globalAlpha;
+  const layers = 7;
+  for (let i = layers; i >= 1; i--) {
+    const t = i / layers;
+    const pad = blurPx * t;
+    ctx.globalAlpha = baseAlpha * Math.pow(1 - t, 1.6) * 0.65;
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius + pad, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = baseAlpha;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 // Draws a pill-shaped chip and returns its width. anchorRight=true positions
 // the chip so its right edge sits at x (used to right-align a row of chips).
 // `key` is optional — when passed, the pill's text color/gradient/underline
@@ -3090,22 +3132,21 @@ function render() {
     const headlineRotDeg = parseFloat(document.getElementById('rot-headline').value) || 0;
 
     // Optional soft blurred panel behind the headline for readability over
-    // busy photos — drawn with ctx.filter so only the panel blurs, not the
-    // text itself (filter is reset before smartText runs). Inherits
-    // headlineOpacity from the outer save, so it fades along with the text.
+    // busy photos — the edge is faked manually (fillSoftRoundRect) rather
+    // than with ctx.filter, since canvas blur filters aren't reliably
+    // supported across browsers. Inherits headlineOpacity from the outer
+    // save, so it fades along with the text.
     if (document.getElementById('t-textbackdrop').checked) {
       ctx.save();
       ctx.translate(hx, hy);
       ctx.rotate(headlineRotDeg * Math.PI / 180);
       const padX = headSize * 0.28, padTop = headSize * 0.95, padBottom = headSize * 0.28;
       const blurPct = (parseInt(document.getElementById('sz-backdropblur').value, 10) || 0) / 100;
-      ctx.filter = `blur(${Math.max(0.5, headSize * 0.1 * blurPct)}px)`;
       const bgGrad = ctx.createLinearGradient(-padX, 0, hw + padX, 0);
       bgGrad.addColorStop(0, 'rgba(0,0,0,0.55)');
       bgGrad.addColorStop(1, 'rgba(0,0,0,0.30)');
       ctx.fillStyle = bgGrad;
-      fillRoundRect(-padX, -padTop, hw + padX * 2, padTop + padBottom, headSize * 0.12);
-      ctx.filter = 'none';
+      fillSoftRoundRect(-padX, -padTop, hw + padX * 2, padTop + padBottom, headSize * 0.12, headSize * 0.16 * blurPct);
       ctx.restore();
     }
 
@@ -3414,9 +3455,9 @@ function render() {
 
   // Backdrop Shape — optional decorative accent shape (rectangle / square /
   // circle), off by default. Replaces the old always-on solid bottom bar:
-  // instead of a hard-edged rect, the shape is drawn then blurred via
-  // ctx.filter so its edge always fades out rather than cutting off with a
-  // hard line — "transparent with blurred/soft edges, not solid."
+  // instead of a hard-edged rect, the edge is faked manually (fillSoft-
+  // RoundRect/fillSoftCircle, not ctx.filter — unreliable across browsers)
+  // so it always fades out rather than cutting off with a hard line.
   if (document.getElementById('t-shapebackdrop').checked) {
     const shType = document.getElementById('f-shapebackdrop-type').value;
     const shColor = val('f-shapebackdrop-color');
@@ -3428,24 +3469,20 @@ function render() {
       // across every aspect ratio — minimum kept non-zero so the edge is
       // never perfectly hard even at low Softness values.
       const blurPx = Math.max(2, Math.min(W, H) * 0.09 * shBlurPct);
-      ctx.filter = `blur(${blurPx}px)`;
       ctx.globalAlpha = shOpacity;
       ctx.fillStyle = shColor;
       if (shType === 'rectangle') {
         // Bottom band, inset from the edges by roughly the blur radius so
         // the feathered edge doesn't get clipped by the canvas bounds.
         const inset = blurPx * 0.6;
-        ctx.fillRect(inset, H - barH, W - inset * 2, barH - inset);
+        fillSoftRoundRect(inset, H - barH, W - inset * 2, barH - inset, 0, blurPx);
       } else if (shType === 'square') {
         const side = Math.min(W, H) * 0.5;
-        ctx.fillRect((W - side) / 2, H - side - blurPx, side, side);
+        fillSoftRoundRect((W - side) / 2, H - side - blurPx, side, side, 0, blurPx);
       } else { // circle
         const r = Math.min(W, H) * 0.28;
-        ctx.beginPath();
-        ctx.arc(W / 2, H - r * 0.9, r, 0, Math.PI * 2);
-        ctx.fill();
+        fillSoftCircle(W / 2, H - r * 0.9, r, blurPx);
       }
-      ctx.filter = 'none';
       ctx.restore();
     }
   }
