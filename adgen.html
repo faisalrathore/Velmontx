@@ -293,7 +293,8 @@
   }
   .size-row label {
     font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-    color: var(--muted); flex-shrink: 0; margin-bottom: 0; width: 34px;
+    color: var(--muted); flex-shrink: 0; margin-bottom: 0;
+    width: auto; white-space: nowrap;
   }
   .size-row input[type=range] { flex: 1; }
   .size-row .size-val {
@@ -1089,18 +1090,18 @@
           <label class="toggle-label"><input type="checkbox" id="t-oldprice" checked><span>Original Price (shown struck-through)</span></label>
           <input type="text" id="f-oldprice" placeholder="e.g. $79.00" value="$79.00" maxlength="12">
           <div class="size-row">
-            <label>Overall Size</label>
+            <label>Overall</label>
             <input type="range" id="sz-info" min="40" max="300" value="100">
             <span class="size-val" id="szv-info">100%</span>
           </div>
           <div style="font-size:10px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-top:4px;">Sizes and moves the whole product name / price block together — use the two sliders below to fine-tune each line's size independently without breaking them apart.</div>
           <div class="size-row">
-            <label>Product Name Size</label>
+            <label>Name</label>
             <input type="range" id="sz-productname" min="50" max="200" value="100">
             <span class="size-val" id="szv-productname">100%</span>
           </div>
           <div class="size-row">
-            <label>Price Size</label>
+            <label>Price</label>
             <input type="range" id="sz-pricesize" min="50" max="200" value="100">
             <span class="size-val" id="szv-pricesize">100%</span>
           </div>
