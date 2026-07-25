@@ -1592,18 +1592,18 @@ function buildTemplateGrid() {
 
 // ── META SAFE-ZONE MARGINS ──
 // Margins (fraction of width/height) to keep clear of each edge per
-// format, based on Meta's published ad placement guidance:
-//  - Feed / Link formats: no platform UI sits over the creative, so a
-//    modest 5–6% buffer keeps text off the crop edge on every surface.
-//  - Stories/Reels (9:16): Meta's official Stories/Reels ad safe zone
-//    keeps content within the centre 1420×952px of a 1080×1920 canvas —
-//    i.e. 250px clear top and bottom (profile bar / caption+reply UI)
-//    and 64px clear left and right — symmetric on both axes.
+// format, per Meta's official Stories/Reels ad safe-zone guidance
+// (facebook.com/business/help/980593475366490):
+//  - Top 270px (~14%) — profile icon, close button, timestamp
+//  - Bottom 380px (~20%) — CTA button / swipe-up prompt
+//  - Sides 65px each (~6%) — symmetric safe margin, centre area ≈950×1270
+//  - Feed / Link formats have no platform UI overlap, so a modest 5–6%
+//    buffer is used there just to keep text off the crop edge.
 const SAFE_ZONE_MARGINS = {
   '1080x1080': { top: 0.05,    bottom: 0.05,    left: 0.05,    right: 0.05 },    // Feed Square 1:1
   '1080x1350': { top: 0.05,    bottom: 0.05,    left: 0.05,    right: 0.05 },    // Feed Portrait 4:5
   '1200x628':  { top: 0.06,    bottom: 0.06,    left: 0.05,    right: 0.05 },    // Link Ad 1.91:1
-  '1080x1920': { top: 0.1302,  bottom: 0.1302,  left: 0.0593,  right: 0.0593 },  // Stories/Reels 9:16 (250px / 64px)
+  '1080x1920': { top: 0.1406,  bottom: 0.1979,  left: 0.0602,  right: 0.0602 },  // Stories/Reels 9:16 (270px / 380px / 65px)
   '1200x627':  { top: 0.06,    bottom: 0.06,    left: 0.05,    right: 0.05 },    // LinkedIn Single Image 1.91:1
   '1200x1200': { top: 0.05,    bottom: 0.05,    left: 0.05,    right: 0.05 }     // LinkedIn Square 1:1
 };
