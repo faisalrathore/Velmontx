@@ -2150,7 +2150,7 @@ const ELEMENT_META = {
   customtag: { fontId: null,              sizeId: 'sz-customtag', opacityId: 'op-customtag', colorId: null,       toggleId: 't-customtag', textStyle: true  },
   coupon:    { fontId: null,              sizeId: 'sz-coupon',    opacityId: 'op-coupon',    colorId: null,       toggleId: 't-coupon',    textStyle: true  },
   info:      { fontId: 'f-product-font',  sizeId: 'sz-info',      opacityId: 'op-info',      colorId: 'f-product-color', toggleId: 't-info', textStyle: true },
-  cta:       { fontId: null,              sizeId: 'sz-cta',       opacityId: 'op-cta',       colorId: 'f-accent', toggleId: 't-cta',       textStyle: true  },
+  cta:       { fontId: null,              sizeId: 'sz-cta',       opacityId: 'op-cta',       colorId: null,       toggleId: 't-cta',       textStyle: true  },
   logo:      { fontId: null,              sizeId: 'sz-logo',      opacityId: 'op-logo',      colorId: null,       toggleId: 't-logo',      textStyle: false }
 };
 
@@ -2274,13 +2274,14 @@ function buildFloatToolbar(key) {
     floatToolbar.appendChild(makeStyleBtn('U', 'underline', 'Underline'));
     floatToolbar.appendChild(ftSep());
 
-    // Gradient: a toggle button that reveals two color stops when on.
-    // Rebuilds the whole toolbar on toggle (cheap — it's a handful of
-    // nodes) so the two swatches appear/disappear immediately in place.
+    // Gradient: "G" toggles it on/off; its two color stops are always
+    // visible (not hidden behind the toggle) so they're easy to find and
+    // set up — picking either color also turns gradient on automatically,
+    // since picking a gradient color is a clear enough signal of intent.
     const gradBtn = document.createElement('button');
     gradBtn.type = 'button';
     gradBtn.className = 'ft-btn ft-style-btn' + (style.gradientEnabled ? ' active' : '');
-    gradBtn.title = 'Gradient text color';
+    gradBtn.title = style.gradientEnabled ? 'Gradient on — click to turn off' : 'Gradient off — click to turn on';
     gradBtn.style.background = style.gradientEnabled
       ? `linear-gradient(90deg, ${style.gradientColor1}, ${style.gradientColor2})`
       : '';
@@ -2293,16 +2294,22 @@ function buildFloatToolbar(key) {
     });
     floatToolbar.appendChild(gradBtn);
 
-    if (style.gradientEnabled) {
-      const g1 = document.createElement('input');
-      g1.type = 'color'; g1.className = 'ft-color'; g1.title = 'Gradient start color'; g1.value = style.gradientColor1;
-      g1.addEventListener('input', () => { style.gradientColor1 = g1.value; render(); });
-      const g2 = document.createElement('input');
-      g2.type = 'color'; g2.className = 'ft-color'; g2.title = 'Gradient end color'; g2.value = style.gradientColor2;
-      g2.addEventListener('input', () => { style.gradientColor2 = g2.value; render(); });
-      floatToolbar.appendChild(g1);
-      floatToolbar.appendChild(g2);
-    }
+    const g1 = document.createElement('input');
+    g1.type = 'color'; g1.className = 'ft-color'; g1.title = 'Gradient start color'; g1.value = style.gradientColor1;
+    g1.addEventListener('input', () => {
+      style.gradientColor1 = g1.value;
+      if (!style.gradientEnabled) { style.gradientEnabled = true; gradBtn.classList.add('active'); }
+      render();
+    });
+    const g2 = document.createElement('input');
+    g2.type = 'color'; g2.className = 'ft-color'; g2.title = 'Gradient end color'; g2.value = style.gradientColor2;
+    g2.addEventListener('input', () => {
+      style.gradientColor2 = g2.value;
+      if (!style.gradientEnabled) { style.gradientEnabled = true; gradBtn.classList.add('active'); }
+      render();
+    });
+    floatToolbar.appendChild(g1);
+    floatToolbar.appendChild(g2);
     floatToolbar.appendChild(ftSep());
   }
 
@@ -2311,8 +2318,18 @@ function buildFloatToolbar(key) {
     const op = document.createElement('input');
     op.type = 'range'; op.className = 'ft-opacity';
     op.min = src.min; op.max = src.max; op.value = src.value; op.title = 'Opacity';
-    op.addEventListener('input', () => { src.value = op.value; src.dispatchEvent(new Event('input')); });
+    // Visible % readout next to the slider — makes it obvious the drag is
+    // actually registering, since the slider alone gives no numeric feedback.
+    const opVal = document.createElement('span');
+    opVal.className = 'ft-size-val';
+    opVal.textContent = src.value + '%';
+    op.addEventListener('input', () => {
+      src.value = op.value;
+      opVal.textContent = op.value + '%';
+      src.dispatchEvent(new Event('input'));
+    });
     floatToolbar.appendChild(op);
+    floatToolbar.appendChild(opVal);
     floatToolbar.appendChild(ftSep());
   }
 
@@ -2366,6 +2383,9 @@ function selectElement(key) {
   buildFloatToolbar(key);
   positionFloatToolbar(key);
   floatToolbar.classList.add('show');
+  // Keep the original behavior: tapping an element also jumps the sidebar
+  // to that element's own panel, in addition to opening its toolbar.
+  scrollToPanel(key);
 }
 
 function deselectElement() {
@@ -2923,6 +2943,26 @@ function resolveFillStyle(key, defaultColor, text, x, y) {
 // no native text-decoration. Must be called immediately after the fillText/
 // smartText call it belongs to, before any translate/rotate is undone, so
 // it inherits the exact same position, font size, alignment and color.
+// Bold normally just boosts the font's numeric weight (see effectiveWeight),
+// but several elements already default to the heaviest weight a font
+// offers (e.g. Barlow Condensed 900 for the headline/price) — boosting
+// "900 to 900" is a no-op, so Bold would look like it does nothing. This
+// adds a thin stroke on top of the fill whenever Bold is on, so it's
+// always visibly heavier no matter what the base weight already was.
+// Called right alongside drawTextUnderline, at the same call sites.
+function applyBoldStroke(text, x, y, key) {
+  if (!text || !getTextStyle(key).bold) return;
+  const fontSizeMatch = /(\d+(?:\.\d+)?)px/.exec(ctx.font);
+  const fontSize = fontSizeMatch ? parseFloat(fontSizeMatch[1]) : 24;
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.miterLimit = 2;
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(0.6, fontSize * 0.045);
+  ctx.strokeText(text, x, y);
+  ctx.restore();
+}
+
 function drawTextUnderline(text, x, y, key) {
   if (!text || !getTextStyle(key).underline) return;
   const width = ctx.measureText(text).width;
@@ -2972,6 +3012,7 @@ function drawPill(x, y, h, text, bg, fg, font, anchorRight, key) {
   const tx = drawX + padX, ty = y + h / 2 + h * 0.04;
   ctx.fillStyle = key ? resolveFillStyle(key, fg, text, tx, ty) : fg;
   ctx.fillText(text, tx, ty);
+  if (key) applyBoldStroke(text, tx, ty, key);
   if (key) drawTextUnderline(text, tx, ty, key);
   ctx.restore();
   return w;
@@ -3073,6 +3114,7 @@ function render() {
     ctx.rotate(headlineRotDeg * Math.PI / 180);
     ctx.fillStyle = resolveFillStyle('headline', textColor, bigText, 0, 0);
     smartText(bigText, 0, 0, 'headline');
+    applyBoldStroke(bigText, 0, 0, 'headline');
     drawTextUnderline(bigText, 0, 0, 'headline');
     ctx.restore();
     elementBoxes.headline = { x: hx, y: hy - headSize * 0.82, w: hw, h: headSize * 1.05 };
@@ -3089,6 +3131,7 @@ function render() {
     const bx = layout.brand.x * W, by = layout.brand.y * H;
     ctx.fillStyle = resolveFillStyle('brand', textColor, brandText, bx, by);
     smartText(brandText, bx, by, 'brand');
+    applyBoldStroke(brandText, bx, by, 'brand');
     drawTextUnderline(brandText, bx, by, 'brand');
     const bw = ctx.measureText(brandText).width;
     elementBoxes.brand = { x: bx, y: by - brandSize * 0.82, w: bw, h: brandSize * 1.05 };
@@ -3116,15 +3159,18 @@ function render() {
     if (words.length > 1) {
       ctx.fillStyle = resolveFillStyle('discount', '#fff', words[0], 0, -dSize*0.32);
       ctx.fillText(words[0], 0, -dSize*0.32);
+      applyBoldStroke(words[0], 0, -dSize*0.32, 'discount');
       drawTextUnderline(words[0], 0, -dSize*0.32, 'discount');
       ctx.font = `${fontStylePrefix('discount')}600 ${dSize*0.5}px 'Inter', sans-serif`;
       const rest = words.slice(1).join(' ');
       ctx.fillStyle = resolveFillStyle('discount', '#fff', rest, 0, dSize*0.38);
       ctx.fillText(rest, 0, dSize*0.38);
+      applyBoldStroke(rest, 0, dSize*0.38, 'discount');
       drawTextUnderline(rest, 0, dSize*0.38, 'discount');
     } else {
       ctx.fillStyle = resolveFillStyle('discount', '#fff', discount, 0, 0);
       ctx.fillText(discount, 0, 0);
+      applyBoldStroke(discount, 0, 0, 'discount');
       drawTextUnderline(discount, 0, 0, 'discount');
     }
     ctx.restore();
@@ -3171,6 +3217,7 @@ function render() {
       const countX = pillX + padX + starsW + gap, countY = pillY + pillH / 2 + pillH * 0.04;
       ctx.fillStyle = resolveFillStyle('rating', '#1a1410', count, countX, countY);
       ctx.fillText(count, countX, countY);
+      applyBoldStroke(count, countX, countY, 'rating');
       drawTextUnderline(count, countX, countY, 'rating');
     }
     ctx.restore();
@@ -3234,6 +3281,7 @@ function render() {
     ctx.font = `${fontStylePrefix('info')}${productWeight} ${productSize}px ${productFamily}`;
     ctx.fillStyle = resolveFillStyle('info', productColor, product, infoX, infoY);
     smartText(product, infoX, infoY, 'info');
+    applyBoldStroke(product, infoX, infoY, 'info');
     drawTextUnderline(product, infoX, infoY, 'info');
     const productW = ctx.measureText(product).width;
 
@@ -3286,6 +3334,7 @@ function render() {
     ctx.textBaseline = 'middle';
     ctx.fillStyle = resolveFillStyle('cta', '#fff', cta + ' →', ctaCenterX, ctaCenterY + 1);
     ctx.fillText(cta + ' →', ctaCenterX, ctaCenterY + 1);
+    applyBoldStroke(cta + ' →', ctaCenterX, ctaCenterY + 1, 'cta');
     drawTextUnderline(cta + ' →', ctaCenterX, ctaCenterY + 1, 'cta');
     ctx.restore();
     elementBoxes.cta = { x: ctaX, y: ctaY, w: ctaW, h: ctaH };
