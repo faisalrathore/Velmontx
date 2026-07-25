@@ -541,6 +541,28 @@
   }
   .grid-overlay.show { opacity: 1; }
 
+  /* ── META SAFE-ZONE OVERLAY (editor-only guide, never exported) ──
+     Dashed box marking the region Meta recommends keeping text/logos
+     inside for the current ad size — accounts for Stories/Reels UI
+     (profile bar, caption, reply field, right-side icon rail) which
+     covers the top, bottom and right edges of that format. */
+  .safezone-overlay {
+    position: absolute; z-index: 4;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s, top 0.15s, right 0.15s, bottom 0.15s, left 0.15s;
+    border: 2px dashed rgba(255,196,0,0.9);
+    box-sizing: border-box;
+  }
+  .safezone-overlay.show { opacity: 1; }
+  .safezone-label {
+    position: absolute; top: 0; left: 0; transform: translateY(-100%);
+    font-family: 'JetBrains Mono', monospace; font-size: 8.5px; font-weight: 700;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #1a1410; background: rgba(255,196,0,0.92);
+    padding: 2px 6px; white-space: nowrap;
+  }
+
   /* ── BACKGROUND-REMOVAL PROCESSING OVERLAY ── */
   .processing-overlay {
     position: absolute; inset: 0; z-index: 6;
@@ -1274,6 +1296,7 @@
               <div class="handle hidden-handle" data-key="logo" title="Drag: logo"></div>
             </div>
             <div class="grid-overlay show" id="gridOverlay"></div>
+            <div class="safezone-overlay show" id="safezoneOverlay"><span class="safezone-label">Safe Zone</span></div>
             <div class="processing-overlay" id="processingOverlay">
               <div class="spinner"></div>
               <div class="processing-text" id="processingText">Removing background…</div>
@@ -1390,9 +1413,9 @@ let layoutStore = {};
 function defaultLayoutFor(w, h) {
   const wide = w >= h * 1.3; // landscape-ish ratios get a bit more breathing room
   return {
-    headline:  { x: 0.055, y: wide ? 0.30 : 0.20, scale: 1.0 },
-    brand:     { x: 0.055, y: 0.08,   scale: 1.0 },
-    discount:  { x: 0.80,  y: 0.14,   scale: 1.0 },
+    headline:  { x: 0.055, y: wide ? 0.30 : 0.20, scale: 0.85 },
+    brand:     { x: 0.055, y: 0.08,   scale: 0.85 },
+    discount:  { x: 0.80,  y: 0.14,   scale: 0.85 },
     rating:    { x: 0.945, y: 0.255,  scale: 1.0 },
     customtag: { x: 0.055, y: 0.783,  scale: 1.0 },
     coupon:    { x: 0.945, y: 0.783,  scale: 1.0 },
@@ -1566,6 +1589,32 @@ function buildTemplateGrid() {
   syncTemplateActiveState();
 }
 
+// ── META SAFE-ZONE MARGINS ──
+// Approximate margins (fraction of width/height) to keep clear of each
+// edge per format, based on Meta's published placement guidance:
+//  - Feed / Link formats: no platform UI sits over the creative, so a
+//    modest 5–6% buffer keeps text off the crop edge on every surface.
+//  - Stories/Reels (9:16): the top is covered by the profile bar, the
+//    bottom by the caption/reply field, and the right edge by the
+//    like/comment/share icon rail — so those margins are much larger.
+const SAFE_ZONE_MARGINS = {
+  '1080x1080': { top: 0.05, bottom: 0.05, left: 0.05, right: 0.05 }, // Feed Square 1:1
+  '1080x1350': { top: 0.05, bottom: 0.05, left: 0.05, right: 0.05 }, // Feed Portrait 4:5
+  '1200x628':  { top: 0.06, bottom: 0.06, left: 0.05, right: 0.05 }, // Link Ad 1.91:1
+  '1080x1920': { top: 0.14, bottom: 0.20, left: 0.06, right: 0.14 }, // Stories/Reels 9:16
+  '1200x627':  { top: 0.06, bottom: 0.06, left: 0.05, right: 0.05 }, // LinkedIn Single Image 1.91:1
+  '1200x1200': { top: 0.05, bottom: 0.05, left: 0.05, right: 0.05 }  // LinkedIn Square 1:1
+};
+const safezoneOverlay = document.getElementById('safezoneOverlay');
+function updateSafeZoneOverlay() {
+  if (!safezoneOverlay) return;
+  const m = SAFE_ZONE_MARGINS[W + 'x' + H] || { top: 0.06, bottom: 0.06, left: 0.06, right: 0.06 };
+  safezoneOverlay.style.top = (m.top * 100) + '%';
+  safezoneOverlay.style.bottom = (m.bottom * 100) + '%';
+  safezoneOverlay.style.left = (m.left * 100) + '%';
+  safezoneOverlay.style.right = (m.right * 100) + '%';
+}
+
 // ── SIZE TABS ──
 function selectSizeTab(tab) {
   document.querySelectorAll('.size-tab').forEach(t => t.classList.remove('active'));
@@ -1577,6 +1626,7 @@ function selectSizeTab(tab) {
   updateHandleVisibility();
   syncSizeSliders();
   syncTemplateActiveState();
+  updateSafeZoneOverlay();
   render();
 }
 document.querySelectorAll('.size-tab').forEach(tab => {
@@ -2007,6 +2057,7 @@ const gridOverlay = document.getElementById('gridOverlay');
 const gridToggleBtn = document.getElementById('gridToggleBtn');
 gridToggleBtn.addEventListener('click', () => {
   const showing = gridOverlay.classList.toggle('show');
+  if (safezoneOverlay) safezoneOverlay.classList.toggle('show', showing);
   gridToggleBtn.textContent = showing ? 'Hide Grid' : 'Show Grid';
   gridToggleBtn.classList.toggle('working', showing);
 });
@@ -2870,6 +2921,7 @@ updateHandleVisibility();
 positionHandles(); // rough placement before the first real render
 syncSizeSliders();
 syncTemplateActiveState();
+updateSafeZoneOverlay();
 fitAppHeight();
 document.fonts.ready.then(render);
 render(); // render() finishes the job via syncHandleGeometry (exact boxes)
