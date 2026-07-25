@@ -578,6 +578,7 @@
     font-size: 14px; line-height: 1; color: #1a1410; flex-shrink: 0;
   }
   .float-toolbar .ft-btn:hover { background: rgba(0,0,0,0.08); }
+  .float-toolbar .ft-style-btn.active { background: rgba(196,28,28,0.14); color: var(--red); }
   .float-toolbar .ft-size-val {
     font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #1a1410;
     min-width: 30px; text-align: center;
@@ -2129,16 +2130,20 @@ let selectedKey = null;
 // price got their own dedicated pickers; everything else still shares the
 // global Text/Accent color the way it always has, so the toolbar edits
 // that shared field rather than inventing a new one.
+// `textStyle: true` marks the plain single-line text elements that support
+// Bold/Italic/Underline toggles — the badge-style elements (discount,
+// rating, tag, coupon) keep their fixed weight since they're small,
+// pre-styled label chips rather than free-form text.
 const ELEMENT_META = {
-  headline:  { fontId: 'f-headline-font', sizeId: 'sz-headline',  opacityId: 'op-headline',  colorId: 'f-text',   toggleId: 't-headline'  },
-  brand:     { fontId: null,              sizeId: 'sz-brand',     opacityId: 'op-brand',     colorId: 'f-text',   toggleId: 't-brand'     },
-  discount:  { fontId: null,              sizeId: 'sz-discount',  opacityId: 'op-discount',  colorId: 'f-accent', toggleId: 't-discount'  },
-  rating:    { fontId: null,              sizeId: 'sz-rating',    opacityId: 'op-rating',    colorId: null,       toggleId: 't-rating'    },
-  customtag: { fontId: null,              sizeId: 'sz-customtag', opacityId: 'op-customtag', colorId: 'f-accent', toggleId: 't-customtag' },
-  coupon:    { fontId: null,              sizeId: 'sz-coupon',    opacityId: 'op-coupon',    colorId: null,       toggleId: 't-coupon'    },
-  info:      { fontId: 'f-product-font',  sizeId: 'sz-info',      opacityId: 'op-info',      colorId: 'f-product-color', toggleId: 't-info' },
-  cta:       { fontId: null,              sizeId: 'sz-cta',       opacityId: 'op-cta',       colorId: 'f-accent', toggleId: 't-cta'       },
-  logo:      { fontId: null,              sizeId: 'sz-logo',      opacityId: 'op-logo',      colorId: null,       toggleId: 't-logo'      }
+  headline:  { fontId: 'f-headline-font', sizeId: 'sz-headline',  opacityId: 'op-headline',  colorId: 'f-text',   toggleId: 't-headline',  textStyle: true  },
+  brand:     { fontId: null,              sizeId: 'sz-brand',     opacityId: 'op-brand',     colorId: 'f-text',   toggleId: 't-brand',     textStyle: true  },
+  discount:  { fontId: null,              sizeId: 'sz-discount',  opacityId: 'op-discount',  colorId: 'f-accent', toggleId: 't-discount',  textStyle: false },
+  rating:    { fontId: null,              sizeId: 'sz-rating',    opacityId: 'op-rating',    colorId: null,       toggleId: 't-rating',    textStyle: false },
+  customtag: { fontId: null,              sizeId: 'sz-customtag', opacityId: 'op-customtag', colorId: 'f-accent', toggleId: 't-customtag', textStyle: false },
+  coupon:    { fontId: null,              sizeId: 'sz-coupon',    opacityId: 'op-coupon',    colorId: null,       toggleId: 't-coupon',    textStyle: false },
+  info:      { fontId: 'f-product-font',  sizeId: 'sz-info',      opacityId: 'op-info',      colorId: 'f-product-color', toggleId: 't-info', textStyle: true },
+  cta:       { fontId: null,              sizeId: 'sz-cta',       opacityId: 'op-cta',       colorId: 'f-accent', toggleId: 't-cta',       textStyle: true  },
+  logo:      { fontId: null,              sizeId: 'sz-logo',      opacityId: 'op-logo',      colorId: null,       toggleId: 't-logo',      textStyle: false }
 };
 
 function ftSep() {
@@ -2199,6 +2204,30 @@ function buildFloatToolbar(key) {
       render();
     });
     floatToolbar.appendChild(c);
+    floatToolbar.appendChild(ftSep());
+  }
+
+  if (meta.textStyle) {
+    const style = getTextStyle(key);
+    const makeStyleBtn = (label, styleKey, title) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'ft-btn ft-style-btn' + (style[styleKey] ? ' active' : '');
+      btn.style.fontStyle = styleKey === 'italic' ? 'italic' : 'normal';
+      btn.style.textDecoration = styleKey === 'underline' ? 'underline' : 'none';
+      btn.style.fontWeight = styleKey === 'bold' ? '800' : '600';
+      btn.textContent = label;
+      btn.title = title;
+      btn.addEventListener('click', () => {
+        style[styleKey] = !style[styleKey];
+        btn.classList.toggle('active', style[styleKey]);
+        render();
+      });
+      return btn;
+    };
+    floatToolbar.appendChild(makeStyleBtn('B', 'bold', 'Bold'));
+    floatToolbar.appendChild(makeStyleBtn('I', 'italic', 'Italic'));
+    floatToolbar.appendChild(makeStyleBtn('U', 'underline', 'Underline'));
     floatToolbar.appendChild(ftSep());
   }
 
@@ -2719,6 +2748,49 @@ function smartText(text, x, y, key) {
   ctx.restore();
 }
 
+// ── PER-ELEMENT BOLD / ITALIC / UNDERLINE ──
+// Toggled from the floating toolbar (not the sidebar) for the plain-text
+// elements: headline, brand, product name, and the CTA button label. Kept
+// as simple in-memory state rather than form fields since nothing else
+// needs to read or persist it beyond the current editing session.
+const TEXT_STYLE_STATE = {};
+function getTextStyle(key) {
+  if (!TEXT_STYLE_STATE[key]) TEXT_STYLE_STATE[key] = { bold: false, italic: false, underline: false };
+  return TEXT_STYLE_STATE[key];
+}
+// Bold "boosts" whatever weight the chosen font would normally use, rather
+// than assuming a fixed value — so a font already picked at 900 doesn't
+// visually change, but a 400/500/700 font clearly gets heavier.
+function effectiveWeight(baseWeight, key) {
+  return getTextStyle(key).bold ? 900 : baseWeight;
+}
+function fontStylePrefix(key) {
+  return getTextStyle(key).italic ? 'italic ' : '';
+}
+// Manually draws an underline under the last-drawn text, since canvas has
+// no native text-decoration. Must be called immediately after the fillText/
+// smartText call it belongs to, before any translate/rotate is undone, so
+// it inherits the exact same position, font size, alignment and color.
+function drawTextUnderline(text, x, y, key) {
+  if (!text || !getTextStyle(key).underline) return;
+  const width = ctx.measureText(text).width;
+  const fontSizeMatch = /(\d+(?:\.\d+)?)px/.exec(ctx.font);
+  const fontSize = fontSizeMatch ? parseFloat(fontSizeMatch[1]) : 24;
+  let boxX = x;
+  if (ctx.textAlign === 'center') boxX = x - width / 2;
+  else if (ctx.textAlign === 'right') boxX = x - width;
+  let underlineY = y + fontSize * 0.12;
+  if (ctx.textBaseline === 'middle') underlineY = y + fontSize * 0.38;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(boxX, underlineY);
+  ctx.lineTo(boxX + width, underlineY);
+  ctx.strokeStyle = ctx.fillStyle;
+  ctx.lineWidth = Math.max(1, fontSize * 0.055);
+  ctx.stroke();
+  ctx.restore();
+}
+
 function fillRoundRect(x, y, w, h, r) {
   if (ctx.roundRect) {
     ctx.beginPath();
@@ -2812,9 +2884,9 @@ function render() {
     ctx.textBaseline = 'alphabetic';
     const fontSelect = document.getElementById('f-headline-font');
     const headlineFamily = fontSelect.value;
-    const headlineWeight = parseInt(fontSelect.selectedOptions[0].dataset.weight, 10) || 900;
+    const headlineWeight = effectiveWeight(parseInt(fontSelect.selectedOptions[0].dataset.weight, 10) || 900, 'headline');
     const headSize = fitFont(ctx, bigText, headlineFamily, headlineWeight, W*0.9, Math.min(W,H)*0.24, 30) * sc('headline');
-    ctx.font = `${headlineWeight} ${headSize}px ${headlineFamily}`;
+    ctx.font = `${fontStylePrefix('headline')}${headlineWeight} ${headSize}px ${headlineFamily}`;
     const hx = layout.headline.x * W, hy = layout.headline.y * H;
     const hw = ctx.measureText(bigText).width;
     const headlineRotDeg = parseFloat(document.getElementById('rot-headline').value) || 0;
@@ -2844,6 +2916,7 @@ function render() {
     ctx.translate(hx, hy);
     ctx.rotate(headlineRotDeg * Math.PI / 180);
     smartText(bigText, 0, 0, 'headline');
+    drawTextUnderline(bigText, 0, 0, 'headline');
     ctx.restore();
     elementBoxes.headline = { x: hx, y: hy - headSize * 0.82, w: hw, h: headSize * 1.05 };
   }
@@ -2853,11 +2926,13 @@ function render() {
     if (!showBrand) return;
     ctx.save();
     const brandSize = W*0.028 * sc('brand');
-    ctx.font = `700 ${brandSize}px 'Inter', sans-serif`;
+    const brandWeight = effectiveWeight(700, 'brand');
+    ctx.font = `${fontStylePrefix('brand')}${brandWeight} ${brandSize}px 'Inter', sans-serif`;
     ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.9 * opacityOf('brand');
     const bx = layout.brand.x * W, by = layout.brand.y * H;
     smartText(brandText, bx, by, 'brand');
+    drawTextUnderline(brandText, bx, by, 'brand');
     const bw = ctx.measureText(brandText).width;
     elementBoxes.brand = { x: bx, y: by - brandSize * 0.82, w: bw, h: brandSize * 1.05 };
     ctx.restore();
@@ -2973,7 +3048,7 @@ function render() {
     const priceMult = (parseInt(document.getElementById('sz-pricesize').value, 10) || 100) / 100;
     const productFontSelect = document.getElementById('f-product-font');
     const productFamily = productFontSelect.value;
-    const productWeight = parseInt(productFontSelect.selectedOptions[0].dataset.weight, 10) || 700;
+    const productWeight = effectiveWeight(parseInt(productFontSelect.selectedOptions[0].dataset.weight, 10) || 700, 'info');
     const priceFontSelect = document.getElementById('f-price-font');
     const priceFamily = priceFontSelect.value;
     const priceWeight = parseInt(priceFontSelect.selectedOptions[0].dataset.weight, 10) || 900;
@@ -2985,8 +3060,9 @@ function render() {
     const productSize = W*0.028 * infoScale * productMult;
     ctx.fillStyle = productColor;
     ctx.globalAlpha = infoOpacity;
-    ctx.font = `${productWeight} ${productSize}px ${productFamily}`;
+    ctx.font = `${fontStylePrefix('info')}${productWeight} ${productSize}px ${productFamily}`;
     smartText(product, infoX, infoY, 'info');
+    drawTextUnderline(product, infoX, infoY, 'info');
     const productW = ctx.measureText(product).width;
 
     const priceY = infoY + barH * 0.38 * infoScale;
@@ -3023,7 +3099,8 @@ function render() {
     if (!(cta && document.getElementById('t-cta').checked)) return;
     ctx.save();
     const ctaScale = sc('cta');
-    ctx.font = `700 ${W*0.024 * ctaScale}px 'Inter', sans-serif`;
+    const ctaWeight = effectiveWeight(700, 'cta');
+    ctx.font = `${fontStylePrefix('cta')}${ctaWeight} ${W*0.024 * ctaScale}px 'Inter', sans-serif`;
     const ctaW = ctx.measureText(cta).width + W*0.07 * ctaScale;
     const ctaH = H*0.06 * ctaScale;
     const ctaCenterX = layout.cta.x * W;
@@ -3037,6 +3114,7 @@ function render() {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(cta + ' →', ctaCenterX, ctaCenterY + 1);
+    drawTextUnderline(cta + ' →', ctaCenterX, ctaCenterY + 1, 'cta');
     ctx.restore();
     elementBoxes.cta = { x: ctaX, y: ctaY, w: ctaW, h: ctaH };
   }
