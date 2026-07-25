@@ -3456,10 +3456,18 @@ function closeStoryModal(){
   document.body.style.overflow='';
 }
 
-document.getElementById('storyModalBackdrop').addEventListener('click',function(e){
-  if(e.target===this) closeStoryModal();
-});
-document.getElementById('storyModal').addEventListener('click',function(e){ e.stopPropagation(); });
+(function(){
+  var backdropEl = document.getElementById('storyModalBackdrop');
+  var modalEl = document.getElementById('storyModal');
+  if (backdropEl) {
+    backdropEl.addEventListener('click',function(e){
+      if(e.target===this) closeStoryModal();
+    });
+  }
+  if (modalEl) {
+    modalEl.addEventListener('click',function(e){ e.stopPropagation(); });
+  }
+})();
 // close handled by inline onclick
 // cta handled by inline onclick
 document.addEventListener('keydown',function(e){ if(e.key==='Escape') closeStoryModal(); });
