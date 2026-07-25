@@ -1310,6 +1310,7 @@
             <button type="button" class="toolbar-btn" id="removeBgBtn" disabled>Remove Background (AI)</button>
             <button type="button" class="toolbar-btn undo-btn hidden-btn" id="undoBgBtn">↺ Undo</button>
             <button type="button" class="toolbar-btn working" id="gridToggleBtn">Hide Grid</button>
+            <button type="button" class="toolbar-btn working" id="safezoneToggleBtn">Hide Safe Zone</button>
           </div>
 
           <div class="side-toolbar-group">
@@ -1590,20 +1591,21 @@ function buildTemplateGrid() {
 }
 
 // ── META SAFE-ZONE MARGINS ──
-// Approximate margins (fraction of width/height) to keep clear of each
-// edge per format, based on Meta's published placement guidance:
+// Margins (fraction of width/height) to keep clear of each edge per
+// format, based on Meta's published ad placement guidance:
 //  - Feed / Link formats: no platform UI sits over the creative, so a
 //    modest 5–6% buffer keeps text off the crop edge on every surface.
-//  - Stories/Reels (9:16): the top is covered by the profile bar, the
-//    bottom by the caption/reply field, and the right edge by the
-//    like/comment/share icon rail — so those margins are much larger.
+//  - Stories/Reels (9:16): Meta's official Stories/Reels ad safe zone
+//    keeps content within the centre 1420×952px of a 1080×1920 canvas —
+//    i.e. 250px clear top and bottom (profile bar / caption+reply UI)
+//    and 64px clear left and right — symmetric on both axes.
 const SAFE_ZONE_MARGINS = {
-  '1080x1080': { top: 0.05, bottom: 0.05, left: 0.05, right: 0.05 }, // Feed Square 1:1
-  '1080x1350': { top: 0.05, bottom: 0.05, left: 0.05, right: 0.05 }, // Feed Portrait 4:5
-  '1200x628':  { top: 0.06, bottom: 0.06, left: 0.05, right: 0.05 }, // Link Ad 1.91:1
-  '1080x1920': { top: 0.14, bottom: 0.20, left: 0.06, right: 0.14 }, // Stories/Reels 9:16
-  '1200x627':  { top: 0.06, bottom: 0.06, left: 0.05, right: 0.05 }, // LinkedIn Single Image 1.91:1
-  '1200x1200': { top: 0.05, bottom: 0.05, left: 0.05, right: 0.05 }  // LinkedIn Square 1:1
+  '1080x1080': { top: 0.05,    bottom: 0.05,    left: 0.05,    right: 0.05 },    // Feed Square 1:1
+  '1080x1350': { top: 0.05,    bottom: 0.05,    left: 0.05,    right: 0.05 },    // Feed Portrait 4:5
+  '1200x628':  { top: 0.06,    bottom: 0.06,    left: 0.05,    right: 0.05 },    // Link Ad 1.91:1
+  '1080x1920': { top: 0.1302,  bottom: 0.1302,  left: 0.0593,  right: 0.0593 },  // Stories/Reels 9:16 (250px / 64px)
+  '1200x627':  { top: 0.06,    bottom: 0.06,    left: 0.05,    right: 0.05 },    // LinkedIn Single Image 1.91:1
+  '1200x1200': { top: 0.05,    bottom: 0.05,    left: 0.05,    right: 0.05 }     // LinkedIn Square 1:1
 };
 const safezoneOverlay = document.getElementById('safezoneOverlay');
 function updateSafeZoneOverlay() {
@@ -2057,10 +2059,19 @@ const gridOverlay = document.getElementById('gridOverlay');
 const gridToggleBtn = document.getElementById('gridToggleBtn');
 gridToggleBtn.addEventListener('click', () => {
   const showing = gridOverlay.classList.toggle('show');
-  if (safezoneOverlay) safezoneOverlay.classList.toggle('show', showing);
   gridToggleBtn.textContent = showing ? 'Hide Grid' : 'Show Grid';
   gridToggleBtn.classList.toggle('working', showing);
 });
+
+// ── SAFE-ZONE TOGGLE (independent of the alignment grid toggle above) ──
+const safezoneToggleBtn = document.getElementById('safezoneToggleBtn');
+if (safezoneToggleBtn && safezoneOverlay) {
+  safezoneToggleBtn.addEventListener('click', () => {
+    const showing = safezoneOverlay.classList.toggle('show');
+    safezoneToggleBtn.textContent = showing ? 'Hide Safe Zone' : 'Show Safe Zone';
+    safezoneToggleBtn.classList.toggle('working', showing);
+  });
+}
 removeLogoBtn.addEventListener('click', () => {
   logoImg = null;
   logoFileInput.value = '';
