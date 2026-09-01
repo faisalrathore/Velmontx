@@ -286,6 +286,11 @@
   }
   .toggle-field { padding: 14px 16px; background: var(--parchment); border: 1px solid var(--border); margin-bottom: 14px; }
   .toggle-field .field-row .field label { margin-bottom: 4px; }
+  .extra-remove-btn {
+    font-family: 'JetBrains Mono', monospace; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--mid); background: none; border: 1px solid var(--border-strong); padding: 3px 8px; cursor: pointer; flex-shrink: 0;
+  }
+  .extra-remove-btn:hover { color: var(--red); border-color: var(--red); }
 
   .size-row {
     display: flex; align-items: center; gap: 8px;
@@ -1021,7 +1026,7 @@
 
       <div class="field element-panel" id="panel-headline">
         <label class="toggle-label"><input type="checkbox" id="t-headline" checked><span>Big Background Text</span></label>
-        <input type="text" id="f-bigtext" placeholder="e.g. SALE" value="SALE" maxlength="14">
+        <input type="text" id="f-bigtext" placeholder="e.g. SALE" value="SALE">
         <select id="f-headline-font" style="margin-top:8px;">
           <option value="'Barlow Condensed', sans-serif" data-weight="900" selected>Barlow Condensed (Classic)</option>
           <option value="'Anton', sans-serif" data-weight="400">Anton</option>
@@ -1054,6 +1059,11 @@
           <span class="size-val" id="outlinev-headline">100%</span>
         </div>
         <label class="toggle-label" style="margin-top:6px;"><input type="checkbox" id="layer-headline"><span>Place behind photo</span></label>
+      </div>
+
+      <div style="margin: -8px 0 14px;">
+        <button type="button" id="addBgTextBtn" style="width:100%; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--dark); background:var(--parchment); border:1px dashed var(--border-strong); padding:8px 10px; cursor:pointer;">+ Add Another Background Text</button>
+        <div id="extraBgTextsContainer"></div>
       </div>
 
       <div class="field-row">
@@ -1245,7 +1255,7 @@
 
       <div class="field toggle-field element-panel" id="panel-customtag">
         <label class="toggle-label"><input type="checkbox" id="t-customtag"><span>Custom Text Tile</span></label>
-        <input type="text" id="f-customtag" placeholder="e.g. New Collection" value="New Collection" maxlength="24" style="margin-top:8px;">
+        <input type="text" id="f-customtag" placeholder="e.g. New Collection" value="New Collection" style="margin-top:8px;">
         <div class="size-row">
           <label>Size</label>
           <input type="range" id="sz-customtag" min="40" max="300" value="100">
@@ -1257,6 +1267,11 @@
           <span class="size-val" id="opv-customtag">100%</span>
         </div>
         <label class="toggle-label" style="margin-top:6px;"><input type="checkbox" id="layer-customtag"><span>Place behind photo</span></label>
+      </div>
+
+      <div style="margin: -8px 0 14px;">
+        <button type="button" id="addCustomTextBtn" style="width:100%; font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:0.06em; text-transform:uppercase; color:var(--dark); background:var(--parchment); border:1px dashed var(--border-strong); padding:8px 10px; cursor:pointer;">+ Add Another Custom Text</button>
+        <div id="extraCustomTagsContainer"></div>
       </div>
 
       <div class="section-divider" style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
@@ -1579,7 +1594,16 @@ function sizeKey() { return W + 'x' + H; }
 function getLayout() {
   const key = sizeKey();
   if (!layoutStore[key]) layoutStore[key] = defaultLayoutFor(W, H);
-  return layoutStore[key];
+  const layout = layoutStore[key];
+  // Any dynamically-added custom text tile / background text (see EXTRA_ORDER
+  // below) needs a fallback position the first time this aspect ratio is
+  // visited, same as every built-in key gets from defaultLayoutFor.
+  if (typeof EXTRA_ORDER !== 'undefined') {
+    EXTRA_ORDER.forEach(inst => {
+      if (!layout[inst.key]) layout[inst.key] = { x: inst.defaultX, y: inst.defaultY, scale: 1 };
+    });
+  }
+  return layout;
 }
 
 // ── LAYOUT TEMPLATES ──
@@ -1688,7 +1712,13 @@ function markTemplateDirty() {
 }
 
 function applyTemplate(tpl) {
-  layoutStore[sizeKey()] = tpl.build(W, H);
+  const _tplKey = sizeKey();
+  const _prevLayout = layoutStore[_tplKey] || {};
+  const _preservedExtras = {};
+  if (typeof EXTRA_ORDER !== 'undefined') {
+    EXTRA_ORDER.forEach(inst => { if (_prevLayout[inst.key]) _preservedExtras[inst.key] = _prevLayout[inst.key]; });
+  }
+  layoutStore[sizeKey()] = Object.assign(tpl.build(W, H), _preservedExtras);
   activeTemplatePerSize[sizeKey()] = tpl.key;
   // Templates define a clean, deliberate arrangement — clear any manual
   // tilt on the headline/logo so switching templates doesn't leave a
@@ -2064,6 +2094,12 @@ function updateHandleVisibility() {
     cta: document.getElementById('t-cta').checked,
     logo: !!logoImg && document.getElementById('t-logo').checked
   };
+  if (typeof EXTRA_ORDER !== 'undefined') {
+    EXTRA_ORDER.forEach(inst => {
+      const cb = document.getElementById('t-' + inst.key);
+      vis[inst.key] = !!cb && cb.checked;
+    });
+  }
   document.querySelectorAll('.handle').forEach(h => {
     h.classList.toggle('hidden-handle', !vis[h.dataset.key]);
   });
@@ -2413,7 +2449,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && selectedKey) deselectElement();
 });
 
-document.querySelectorAll('.handle').forEach(h => {
+// Shared by every handle, static or dynamically added later (custom text /
+// background text instances) — drag-to-move plus scroll-wheel-to-resize.
+function wireHandleDrag(h) {
   makeDraggable(
     h,
     () => ({ x: getLayout()[h.dataset.key].x, y: getLayout()[h.dataset.key].y }),
@@ -2428,7 +2466,21 @@ document.querySelectorAll('.handle').forEach(h => {
       render();
     }
   );
-});
+  h.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const key = h.dataset.key;
+    const entry = getLayout()[key];
+    if (!entry) return;
+    const current = entry.scale || 1;
+    const next = Math.max(0.4, Math.min(3, current + (e.deltaY < 0 ? 0.06 : -0.06)));
+    entry.scale = next;
+    flashScaleReadout(h, key, next);
+    syncSizeSliders();
+    markTemplateDirty();
+    render();
+  }, { passive: false });
+}
+document.querySelectorAll('.handle').forEach(wireHandleDrag);
 
 // ── SCROLL-TO-RESIZE: each handle's text/badge grows or shrinks on wheel ──
 const scaleReadout = document.getElementById('scaleReadout');
@@ -2446,22 +2498,6 @@ function flashScaleReadout(handleEl, key, pct) {
   clearTimeout(scaleReadoutTimer);
   scaleReadoutTimer = setTimeout(() => scaleReadout.classList.remove('show'), 850);
 }
-
-document.querySelectorAll('.handle').forEach(h => {
-  h.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    const key = h.dataset.key;
-    const entry = getLayout()[key];
-    if (!entry) return;
-    const current = entry.scale || 1;
-    const next = Math.max(0.4, Math.min(3, current + (e.deltaY < 0 ? 0.06 : -0.06)));
-    entry.scale = next;
-    flashScaleReadout(h, key, next);
-    syncSizeSliders();
-    markTemplateDirty();
-    render();
-  }, { passive: false });
-});
 
 // Dragging the photo itself pans it (image.x/y are the image's own center
 // point, not clamped to 0–1, so the photo can be pushed partly off-canvas
@@ -3287,11 +3323,65 @@ function render() {
     ctx.globalAlpha = opacityOf('customtag');
     const tagH = H * 0.044 * sc('customtag');
     const tagFontRes = resolveFont('customtag', "'JetBrains Mono', monospace", 700);
-    const tagFont = `${fontStylePrefix('customtag')}${tagFontRes.weight} ${tagH * 0.4}px ${tagFontRes.family}`;
+    const tagText = val('f-customtag').toUpperCase();
+    // Text length is no longer capped (see #f-customtag maxlength removal) —
+    // fitFont shrinks the pill's font instead of letting long text blow the
+    // pill off the edge of the canvas, same safety net the headline already had.
+    const tagSize = fitFont(ctx, tagText, tagFontRes.family, tagFontRes.weight, W * 0.86, tagH * 0.4, 9);
+    const tagFont = `${fontStylePrefix('customtag')}${tagFontRes.weight} ${tagSize}px ${tagFontRes.family}`;
     const tagX = layout.customtag.x * W, tagY = layout.customtag.y * H;
-    const tagW = drawPill(tagX, tagY, tagH, val('f-customtag').toUpperCase(), accent, '#fff', tagFont, false, 'customtag');
+    const tagW = drawPill(tagX, tagY, tagH, tagText, accent, '#fff', tagFont, false, 'customtag');
     elementBoxes.customtag = { x: tagX, y: tagY, w: tagW, h: tagH };
     ctx.restore();
+  }
+
+  // ── Generic versions of the two functions above, used by every
+  // dynamically-added "+ Add Another Custom Text" / "+ Add Another
+  // Background Text" instance (see EXTRA_ORDER near the bottom of the
+  // script). Same rendering, engine, drag, resize, opacity, font/color
+  // toolbar, and "place behind photo" support as the originals — just
+  // parameterized by key/field instead of hard-coded to 'customtag' /
+  // 'headline' / 'f-customtag' / 'f-bigtext'.
+  function drawCustomTagExtra(inst) {
+    const tagText = val(inst.fieldId).toUpperCase();
+    const toggle = document.getElementById('t-' + inst.key);
+    if (!(toggle && toggle.checked && tagText)) return;
+    ctx.save();
+    ctx.globalAlpha = opacityOf(inst.key);
+    const tagH = H * 0.044 * sc(inst.key);
+    const tagFontRes = resolveFont(inst.key, "'JetBrains Mono', monospace", 700);
+    const tagSize = fitFont(ctx, tagText, tagFontRes.family, tagFontRes.weight, W * 0.86, tagH * 0.4, 9);
+    const tagFont = `${fontStylePrefix(inst.key)}${tagFontRes.weight} ${tagSize}px ${tagFontRes.family}`;
+    const tagX = layout[inst.key].x * W, tagY = layout[inst.key].y * H;
+    const tagW = drawPill(tagX, tagY, tagH, tagText, accent, '#fff', tagFont, false, inst.key);
+    elementBoxes[inst.key] = { x: tagX, y: tagY, w: tagW, h: tagH };
+    ctx.restore();
+  }
+
+  function drawBgTextExtra(inst) {
+    const text = (val(inst.fieldId) || '').toUpperCase();
+    const toggle = document.getElementById('t-' + inst.key);
+    if (!(toggle && toggle.checked && text)) return;
+    ctx.save();
+    const opacity = opacityOf(inst.key);
+    ctx.globalAlpha = opacity;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    const fam = resolveFont(inst.key, "'Barlow Condensed', sans-serif", 900);
+    const headSize = fitFont(ctx, text, fam.family, fam.weight, W * 0.9, Math.min(W, H) * 0.24, 20) * sc(inst.key);
+    ctx.font = `${fontStylePrefix(inst.key)}${fam.weight} ${headSize}px ${fam.family}`;
+    const hx = layout[inst.key].x * W, hy = layout[inst.key].y * H;
+    const hw = ctx.measureText(text).width;
+    const rotSlider = document.getElementById('rot-' + inst.key);
+    const rotDeg = rotSlider ? (parseFloat(rotSlider.value) || 0) : 0;
+    ctx.translate(hx, hy);
+    ctx.rotate(rotDeg * Math.PI / 180);
+    ctx.fillStyle = resolveFillStyle(inst.key, textColor, text, 0, 0);
+    smartText(text, 0, 0, inst.key);
+    applyBoldStroke(text, 0, 0, inst.key);
+    drawTextUnderline(text, 0, 0, inst.key);
+    ctx.restore();
+    elementBoxes[inst.key] = { x: hx, y: hy - headSize * 0.82, w: hw, h: headSize * 1.05 };
   }
 
   function drawCoupon() {
@@ -3426,6 +3516,14 @@ function render() {
     headline: drawHeadline, brand: drawBrand, discount: drawDiscount, rating: drawRating,
     customtag: drawCustomTag, coupon: drawCoupon, info: drawInfo, cta: drawCta, logo: drawLogo
   };
+  // Every "+ Add Another..." custom text tile / background text instance
+  // joins the exact same behind/front-of-photo draw pass as everything else.
+  if (typeof EXTRA_ORDER !== 'undefined') {
+    EXTRA_ORDER.forEach(inst => {
+      LAYER_KEYS.push(inst.key);
+      DRAW_FN[inst.key] = inst.type === 'custom' ? () => drawCustomTagExtra(inst) : () => drawBgTextExtra(inst);
+    });
+  }
   LAYER_KEYS.forEach(key => { if (isBehind(key)) DRAW_FN[key](); });
 
   // Product image — position/scale come entirely from layout.image, set by
@@ -3646,6 +3744,123 @@ function fitAppHeight() {
 window.addEventListener('resize', fitAppHeight);
 window.addEventListener('load', fitAppHeight);
 document.fonts.ready.then(fitAppHeight);
+
+// ── DYNAMIC EXTRA TEXT ELEMENTS ──
+// Backs the "+ Add Another Custom Text" / "+ Add Another Background Text"
+// buttons: unlike the original single headline/customtag fields (still
+// hard-coded above for backward compatibility with every saved layout and
+// template), any number of these can be added, each fully independent —
+// its own unlimited-length text, drag handle, size/opacity, font/color/
+// bold/italic/underline/gradient via the floating toolbar, rotation (for
+// background text), and "place behind photo" toggle. They plug into the
+// same generic engine (getLayout, sc, opacityOf, resolveFont, ELEMENT_META,
+// LAYER_KEYS/DRAW_FN in render()) that already drives every other element,
+// so no separate code path was needed for drag/resize/style/export.
+let EXTRA_ORDER = [];
+let extraKeyCounter = 0;
+
+function addExtraTextInstance(type) {
+  extraKeyCounter++;
+  const key = (type === 'custom' ? 'customtagx' : 'headlinex') + extraKeyCounter;
+  const fieldId = 'f-' + key;
+  const countOfType = EXTRA_ORDER.filter(i => i.type === type).length;
+  const label = (type === 'custom' ? 'Custom Text' : 'Background Text') + ' ' + (countOfType + 2); // +2: #1 is the original field above
+  // Stagger each new instance's starting spot a bit so a run of "+ Add"
+  // clicks doesn't pile every new element exactly on top of the last one.
+  const stagger = (countOfType % 5) * 0.09;
+  const defaultX = 0.055;
+  const defaultY = Math.min(0.92, (type === 'custom' ? 0.40 : 0.34) + stagger);
+
+  const inst = { key, type, fieldId, defaultX, defaultY };
+  EXTRA_ORDER.push(inst);
+
+  const panel = document.createElement('div');
+  panel.className = 'field toggle-field element-panel';
+  panel.id = 'panel-' + key;
+  panel.innerHTML = `
+    <label class="toggle-label" style="justify-content:space-between;">
+      <span style="display:flex; align-items:center; gap:8px;"><input type="checkbox" id="t-${key}" checked><span>${label}</span></span>
+      <button type="button" class="extra-remove-btn" title="Remove this element">✕ Remove</button>
+    </label>
+    <input type="text" id="${fieldId}" placeholder="${type === 'custom' ? 'e.g. Limited Stock Left' : 'e.g. NEW ARRIVAL'}" value="${type === 'custom' ? 'New Text' : 'TEXT'}" style="margin-top:8px;">
+    <div class="size-row">
+      <label>Size</label>
+      <input type="range" id="sz-${key}" min="40" max="300" value="100">
+      <span class="size-val" id="szv-${key}">100%</span>
+    </div>
+    ${type === 'bg' ? `<div class="size-row">
+      <label>Rotate</label>
+      <input type="range" id="rot-${key}" min="-45" max="45" value="0">
+      <span class="size-val" id="rotv-${key}">0°</span>
+    </div>` : ''}
+    <div class="size-row">
+      <label>Opacity</label>
+      <input type="range" id="op-${key}" min="10" max="100" value="100">
+      <span class="size-val" id="opv-${key}">100%</span>
+    </div>
+    <label class="toggle-label" style="margin-top:6px;"><input type="checkbox" id="layer-${key}"><span>Place behind photo</span></label>
+  `;
+  const container = document.getElementById(type === 'custom' ? 'extraCustomTagsContainer' : 'extraBgTextsContainer');
+  container.appendChild(panel);
+
+  document.getElementById(fieldId).addEventListener('input', render);
+  document.getElementById(fieldId).addEventListener('change', render);
+  document.getElementById('t-' + key).addEventListener('change', () => { updateHandleVisibility(); render(); });
+  document.getElementById('layer-' + key).addEventListener('change', render);
+
+  const szSlider = document.getElementById('sz-' + key);
+  szSlider.addEventListener('input', () => {
+    document.getElementById('szv-' + key).textContent = szSlider.value + '%';
+    getLayout()[key].scale = parseInt(szSlider.value, 10) / 100;
+    markTemplateDirty();
+    render();
+  });
+  const opSlider = document.getElementById('op-' + key);
+  opSlider.addEventListener('input', () => {
+    document.getElementById('opv-' + key).textContent = opSlider.value + '%';
+    render();
+  });
+  if (type === 'bg') wireRotationSlider('rot-' + key, 'rotv-' + key);
+
+  SIZE_SLIDER_KEYS.push(key);
+  HANDLE_SIZE_LABEL[key] = label + ' Size';
+  ELEMENT_META[key] = { fontId: null, sizeId: 'sz-' + key, opacityId: 'op-' + key, colorId: null, toggleId: 't-' + key, textStyle: true };
+
+  panel.querySelector('.extra-remove-btn').addEventListener('click', () => removeExtraTextInstance(key));
+
+  const handle = document.createElement('div');
+  handle.className = 'handle';
+  handle.dataset.key = key;
+  handle.title = 'Drag: ' + label.toLowerCase();
+  editLayer.insertBefore(handle, floatToolbar);
+  wireHandleDrag(handle);
+
+  updateHandleVisibility();
+  positionHandles();
+  render();
+  scrollToPanel(key);
+}
+
+function removeExtraTextInstance(key) {
+  const idx = EXTRA_ORDER.findIndex(i => i.key === key);
+  if (idx === -1) return;
+  if (selectedKey === key) deselectElement();
+  EXTRA_ORDER.splice(idx, 1);
+  const panel = document.getElementById('panel-' + key);
+  if (panel) panel.remove();
+  const handle = document.querySelector('.handle[data-key="' + key + '"]');
+  if (handle) handle.remove();
+  delete ELEMENT_META[key];
+  delete TEXT_STYLE_STATE[key];
+  Object.values(layoutStore).forEach(l => { delete l[key]; });
+  const szIdx = SIZE_SLIDER_KEYS.indexOf(key);
+  if (szIdx !== -1) SIZE_SLIDER_KEYS.splice(szIdx, 1);
+  delete HANDLE_SIZE_LABEL[key];
+  render();
+}
+
+document.getElementById('addBgTextBtn').addEventListener('click', () => addExtraTextInstance('bg'));
+document.getElementById('addCustomTextBtn').addEventListener('click', () => addExtraTextInstance('custom'));
 
 // Initial render (waits for web fonts to avoid fallback-font flash)
 buildTemplateGrid();
